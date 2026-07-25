@@ -26,6 +26,109 @@ body {
   transition-timing-function: ease-out;
 }
 
+.brand-lockup-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand-icon {
+  display: inline-flex;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #f2e9dc;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.brand-icon-compact {
+  width: 42px;
+  height: 42px;
+}
+
+.brand-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-steam path {
+  fill: none;
+  stroke: rgba(162, 61, 43, 0.68);
+  stroke-width: 3;
+  stroke-linecap: round;
+  animation: brand-steam-rise 2.8s ease-in-out infinite;
+}
+
+.brand-steam path:nth-child(2) {
+  animation-delay: -0.9s;
+}
+
+.brand-steam path:nth-child(3) {
+  animation-delay: -1.8s;
+}
+
+.brand-bowl {
+  fill: #1b365d;
+  stroke: #0e2342;
+  stroke-width: 3;
+}
+
+.brand-rim {
+  fill: none;
+  stroke: #0e2342;
+  stroke-width: 3;
+}
+
+.brand-soup {
+  fill: #e67e22;
+}
+
+.brand-noodle {
+  fill: none;
+  stroke: #f4d03f;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.brand-egg-white {
+  fill: #fff;
+}
+
+.brand-egg-yolk {
+  fill: #f39c12;
+}
+
+.brand-fish {
+  transform-origin: 97px 84px;
+  animation: brand-fish-swim 2.4s ease-in-out infinite;
+}
+
+.brand-fish-body {
+  fill: #e65100;
+}
+
+.brand-fish-eye {
+  fill: #1b2620;
+}
+
+@keyframes brand-steam-rise {
+  0%, 100% { opacity: 0.35; transform: translateY(2px); }
+  50% { opacity: 0.95; transform: translateY(-3px); }
+}
+
+@keyframes brand-fish-swim {
+  0%, 100% { transform: translateX(-1px) rotate(-2deg); }
+  50% { transform: translateX(3px) rotate(2deg); }
+}
+
 .map-frame {
   contain: layout paint;
   isolation: isolate;
@@ -84,6 +187,19 @@ body {
 @media (max-width: 900px) {
   body {
     overscroll-behavior-y: auto;
+  }
+
+  .brand-lockup-with-icon {
+    gap: 7px;
+  }
+
+  .brand-icon-compact {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-wordmark .brand-en {
+    display: none;
   }
 
   .map-wrapper,
