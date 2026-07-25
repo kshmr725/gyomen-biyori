@@ -1,12 +1,17 @@
+"use client";
+
 import { ExploreView } from "@/components/explore-view";
+import { useLanguage } from "@/lib/i18n";
 
 export default function ExplorePage() {
+  const { t } = useLanguage();
+
   return (
     <main className="page-shell">
       <div className="page-heading">
-        <p className="eyebrow">BROWSE THE CITY</p>
-        <h1>自由逛逛</h1>
-        <p>地圖和清單一起看，先不用做決定。</p>
+        <p className="eyebrow">{t.exploreEyebrow}</p>
+        <h1>{t.exploreTitle}</h1>
+        <p>{t.exploreDesc}</p>
       </div>
       <ExploreView />
     </main>

@@ -1,5 +1,19 @@
+"use client";
+
 import { ProfilePanel } from "@/components/profile-panel";
+import { useLanguage } from "@/lib/i18n";
 
 export default function ProfilePage() {
-  return <main className="page-shell"><div className="page-heading"><p className="eyebrow">MY RAMEN LOG</p><h1>我的拉麵紀錄</h1><p>收藏、吃過、評分與再訪意願都只屬於你。</p></div><ProfilePanel /></main>;
+  const { t } = useLanguage();
+
+  return (
+    <main className="page-shell">
+      <div className="page-heading">
+        <p className="eyebrow">MY RAMEN LOG</p>
+        <h1>{t.profileTitle}</h1>
+        <p>Your personal ramen footprints, saved favorites, and visit history.</p>
+      </div>
+      <ProfilePanel />
+    </main>
+  );
 }

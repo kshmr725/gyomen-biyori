@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Coordinates } from "@/lib/types";
 import { LoveModal } from "@/components/love-modal";
+import { useLanguage } from "@/lib/i18n";
 
 const PRESET_LOCATIONS: Array<{ name: string; area: string; coords: Coordinates }> = [
   { name: "台北車站", area: "中正區", coords: { lat: 25.0478, lng: 121.5170 } },
@@ -24,6 +25,7 @@ type LocationSearchProps = {
 };
 
 export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName }: LocationSearchProps) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -90,18 +92,18 @@ export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜尋捷運站、地標或地址 (例：中山站、西門町)"
+            placeholder={t.searchPlaceholder}
             className="location-input"
           />
           <button type="submit" className="button button-primary search-btn" disabled={searching}>
-            {searching ? "搜尋中…" : "搜尋地點"}
+            {searching ? "..." : t.searchButton}
           </button>
         </form>
 
         {errorMessage && <p className="search-error">{errorMessage}</p>}
 
         <div className="location-quick-presets">
-          <span className="preset-label">熱門捷運站與地標：</span>
+          <span className="preset-label">{t.popularHotspots}</span>
           <div className="preset-chips">
             {filteredPresets.map((loc) => (
               <button
@@ -118,7 +120,7 @@ export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName
 
         <div className="gps-fallback-row">
           <button type="button" className="button button-ghost gps-btn" onClick={onUseGPS}>
-            📡 使用目前 GPS 自動定位
+            {t.useGPSButton}
           </button>
         </div>
       </div>

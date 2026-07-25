@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { useLanguage } from "@/lib/i18n";
 
 export function AuthButton() {
+  const { t } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -18,7 +20,7 @@ export function AuthButton() {
   if (user) {
     return (
       <button className="nav-button" onClick={() => getSupabaseBrowserClient().auth.signOut()}>
-        登出
+        {t.logout}
       </button>
     );
   }
@@ -33,7 +35,7 @@ export function AuthButton() {
         })
       }
     >
-      Google 登入
+      {t.loginGoogle}
     </button>
   );
 }

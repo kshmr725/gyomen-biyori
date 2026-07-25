@@ -6,6 +6,7 @@ import type { Shop } from "@/lib/types";
 import { queueLabel } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { useLanguage } from "@/lib/i18n";
 
 export function ShopCard({
   shop,
@@ -18,6 +19,7 @@ export function ShopCard({
   reason?: string;
   featured?: boolean;
 }) {
+  const { t, lang } = useLanguage();
   const [isFav, setIsFav] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -61,9 +63,9 @@ export function ShopCard({
           <button
             className={`fav-card-btn ${isFav ? "is-fav" : ""}`}
             onClick={toggleFavorite}
-            title={isFav ? "取消收藏" : "加入收藏"}
+            title={isFav ? t.favoritedBtn : t.favoriteBtn}
           >
-            {isFav ? "❤️ 已收藏" : "🤍 收藏"}
+            {isFav ? t.favoritedBtn : t.favoriteBtn}
           </button>
         )}
       </div>
@@ -74,14 +76,14 @@ export function ShopCard({
             <h3>{shop.name}</h3>
           </div>
           <span className={`open-pill ${shop.openNow ? "open" : "closed"}`}>
-            {shop.openNow ? "營業中" : "未營業"}
+            {shop.openNow ? t.openNow : t.closed}
           </span>
         </div>
         <p className="shop-desc">{reason ?? shop.description}</p>
 
         {shop.menuItems && shop.menuItems.length > 0 && (
           <div className="dishes-preview">
-            <span className="dishes-label">招牌主打：</span>
+            <span className="dishes-label">{t.signatureItem}</span>
             <div className="dish-chips">
               {shop.menuItems.slice(0, 2).map((item) => (
                 <span key={item.id} className="dish-chip">
@@ -94,14 +96,20 @@ export function ShopCard({
 
         <div className="tag-row">
           {shop.mrtInfo && (
-            <span className="tag-chip green">🚇 {shop.mrtInfo.station} 步行 {shop.mrtInfo.walkMinutes} 分</span>
+            <span className="tag-chip green">
+              🚇 {shop.mrtInfo.station} {lang === "en" ? `${shop.mrtInfo.walkMinutes}m walk` : `步行 ${shop.mrtInfo.walkMinutes} 分`}
+            </span>
           )}
-          <span>{walkingMinutes > 0 ? `🚶 直線/步行 ${walkingMinutes} 分` : "🚶 步行時間計算中"}</span>
-          <span>💰 基本款 NT${shop.basePrice}</span>
+          <span>
+            {walkingMinutes > 0
+              ? (lang === "en" ? `🚶 ${walkingMinutes}m walk` : `🚶 直線/步行 ${walkingMinutes} 分`)
+              : (lang === "en" ? "🚶 Calculating walk time..." : "🚶 步行時間計算中")}
+          </span>
+          <span>💰 {t.basePrice}{shop.basePrice}</span>
           <span>⏳ {queueLabel(queueLevelAt(shop))}</span>
         </div>
         <Link className="button button-ghost view-detail-btn" href={`/shops/${shop.slug}`}>
-          查看完整菜單與圖片 →
+          {t.viewMenuBtn}
         </Link>
       </div>
     </article>

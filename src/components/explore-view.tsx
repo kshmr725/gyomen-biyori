@@ -8,12 +8,14 @@ import { shops } from "@/lib/seed";
 import { adminScore, queueRank } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
 import type { Coordinates, Shop } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
 
 const TAIPEI_CENTER = { lat: 25.0478, lng: 121.5170 };
 type Sort = "walk" | "score" | "queue";
 type MobileTab = "list" | "map";
 
 export function ExploreView() {
+  const { t } = useLanguage();
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
   const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
@@ -75,7 +77,7 @@ export function ExploreView() {
   return (
     <div className="explore-container">
       <div className="explore-search-bar paper-card">
-        <h3>🔍 搜尋地點 / 捷運站為中心點</h3>
+        <h3>{t.searchHeading}</h3>
         <LocationSearch
           onSelectLocation={handleSelectLocation}
           onUseGPS={handleUseGPS}
@@ -89,13 +91,13 @@ export function ExploreView() {
           className={`mobile-tab-btn ${mobileTab === "list" ? "active" : ""}`}
           onClick={() => setMobileTab("list")}
         >
-          📋 店家清單 ({sorted.length})
+          {t.mobileTabList} ({sorted.length})
         </button>
         <button
           className={`mobile-tab-btn ${mobileTab === "map" ? "active" : ""}`}
           onClick={() => setMobileTab("map")}
         >
-          🗺️ 互動地圖
+          {t.mobileTabMap}
         </button>
       </div>
 
@@ -121,18 +123,18 @@ export function ExploreView() {
         <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
           <div className="list-toolbar">
             <div>
-              <strong>{shops.length} 間店家 (中心點：{selectedLocationName})</strong>
+              <strong>{t.shopsCount.replace("{count}", String(shops.length)).replace("{center}", selectedLocationName)}</strong>
               <div className="microcopy">{routeStatus}</div>
             </div>
             <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-              <option value="walk">步行/距離排序</option>
-              <option value="score">綜合評分排序</option>
-              <option value="queue">排隊時間排序</option>
+              <option value="walk">{t.sortWalk}</option>
+              <option value="score">{t.sortScore}</option>
+              <option value="queue">{t.sortQueue}</option>
             </select>
           </div>
           {selectedShop && (
             <div className="selected-banner">
-              📍 地圖已選取：<strong>{selectedShop.name}</strong>
+              {t.mapSelectedBanner} <strong>{selectedShop.name}</strong>
             </div>
           )}
           {sorted.map((shop) => (
