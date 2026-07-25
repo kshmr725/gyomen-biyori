@@ -121,22 +121,6 @@ export function RecommendationWizard() {
 
   return (
     <div className="wizard-shell">
-      <div className="map-column">
-        <MapView
-          center={center}
-          selected={selected}
-          shops={shops}
-          selectedShopId={activePreviewShop?.id}
-          onSelect={(coords) => handleSelectLocation(coords, lang === "en" ? "Map Selected Location" : "地圖點選位置")}
-          onShopSelect={(shop) => setActivePreviewShop(shop)}
-          height={540}
-        />
-        <div className="map-caption">
-          <span>{selected ? `📍 ${lang === "en" ? "Center: " : "中心點："}${selectedLocationName}` : (lang === "en" ? "👉 Select location or click map" : "👉 請輸入地點或點擊地圖")}</span>
-          <span>{lang === "en" ? `Matching: ${matchingShopIds.size} Shops` : `符合條件店家：${matchingShopIds.size} 間`}</span>
-        </div>
-      </div>
-
       <div className="wizard-panel paper-card">
         {step === 0 && (
           <Step title={lang === "en" ? "1. Select Location" : "1. 選擇所在地點"} kicker="STEP 01">
@@ -258,6 +242,22 @@ export function RecommendationWizard() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="map-column">
+        <MapView
+          center={center}
+          selected={selected}
+          shops={shops}
+          selectedShopId={activePreviewShop?.id}
+          onSelect={(coords) => handleSelectLocation(coords, lang === "en" ? "Map Selected Location" : "地圖點選位置")}
+          onShopSelect={(shop) => setActivePreviewShop(shop)}
+          height={540}
+        />
+        <div className="map-caption">
+          <span>{selected ? `📍 ${lang === "en" ? "Center: " : "中心點："}${selectedLocationName}` : (lang === "en" ? "👉 Select location or click map" : "👉 請輸入地點或點擊地圖")}</span>
+          <span>{lang === "en" ? `Matching: ${matchingShopIds.size} Shops` : `符合條件店家：${matchingShopIds.size} 間`}</span>
+        </div>
       </div>
     </div>
   );

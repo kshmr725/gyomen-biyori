@@ -104,6 +104,7 @@ select {
 .page-shell {
   width: min(1200px, calc(100% - 40px));
   margin: 0 auto;
+  animation: page-fade-in 0.35s ease-out;
 }
 
 .page-shell {
@@ -1021,17 +1022,43 @@ select {
 }
 
 /* Recommendation Wizard Grid */
-.wizard-grid {
+.wizard-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(380px, 0.85fr);
+  grid-template-columns: minmax(380px, 0.85fr) minmax(0, 1.15fr);
   gap: 24px;
   align-items: start;
 }
 
 .wizard-panel {
-  position: sticky;
-  top: 96px;
   min-height: 400px;
+}
+
+.map-column {
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Smooth page transition animations */
+.page-shell {
+  animation: page-fade-in 0.35s ease-out;
+}
+
+@keyframes page-fade-in {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.step-box {
+  animation: step-slide-in 0.3s ease-out;
+}
+
+@keyframes step-slide-in {
+  0% { opacity: 0; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 .step-card h2,
@@ -1416,11 +1443,17 @@ select {
 }
 
 @media (max-width: 900px) {
+  .wizard-shell,
   .wizard-grid,
   .explore-grid,
   .detail-hero,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+  .wizard-shell .map-column {
+    position: relative;
+    top: auto;
+    order: -1;
   }
   .menu-grid {
     grid-template-columns: 1fr;
