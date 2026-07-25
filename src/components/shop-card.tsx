@@ -1,7 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Shop } from "@/lib/types";
 import { queueLabel } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export function ShopCard({
   shop,
@@ -14,12 +18,54 @@ export function ShopCard({
   reason?: string;
   featured?: boolean;
 }) {
+  const [isFav, setIsFav] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const supabase = getSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id);
+        supabase
+          .from("favorites")
+          .select("*")
+          .eq("user_id", data.user.id)
+          .eq("shop_id", shop.id)
+          .then(({ data: favData }) => {
+            if (favData && favData.length > 0) setIsFav(true);
+          });
+      }
+    });
+  }, [shop.id]);
+
+  async function toggleFavorite() {
+    if (!isSupabaseConfigured() || !userId) return;
+    const supabase = getSupabaseBrowserClient();
+    if (isFav) {
+      await supabase.from("favorites").delete().eq("user_id", userId).eq("shop_id", shop.id);
+      setIsFav(false);
+    } else {
+      await supabase.from("favorites").insert([{ user_id: userId, shop_id: shop.id }]);
+      setIsFav(true);
+    }
+  }
+
   return (
     <article className={`shop-card ${featured ? "featured" : ""}`}>
       <div className="shop-card-media">
         <img src={shop.coverImage} alt={shop.name} className="shop-card-cover" />
         <span className="area-badge">{shop.area}</span>
         <span className="rating-badge">⭐ {shop.googleRating}</span>
+        {userId && (
+          <button
+            className={`fav-card-btn ${isFav ? "is-fav" : ""}`}
+            onClick={toggleFavorite}
+            title={isFav ? "取消收藏" : "加入收藏"}
+          >
+            {isFav ? "❤️ 已收藏" : "🤍 收藏"}
+          </button>
+        )}
       </div>
       <div className="shop-card-body">
         <div className="shop-card-top">
@@ -32,7 +78,7 @@ export function ShopCard({
           </span>
         </div>
         <p className="shop-desc">{reason ?? shop.description}</p>
-        
+
         {shop.menuItems && shop.menuItems.length > 0 && (
           <div className="dishes-preview">
             <span className="dishes-label">招牌主打：</span>
