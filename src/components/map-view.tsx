@@ -27,28 +27,51 @@ export function MapView({
   const elementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const onSelectRef = useRef(onSelect);
+  const onShopSelectRef = useRef(onShopSelect);
+  const initialCenterRef = useRef(center);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+
+  useEffect(() => {
+    onShopSelectRef.current = onShopSelect;
+  }, [onShopSelect]);
 
   const matchingSet = useMemo(() => {
     if (!matchingShopIds) return null;
     return matchingShopIds instanceof Set ? matchingShopIds : new Set(matchingShopIds);
   }, [matchingShopIds]);
 
-
   useEffect(() => {
     let active = true;
+    let resizeObserver: ResizeObserver | null = null;
+
     async function setup() {
       if (!elementRef.current || mapRef.current) return;
       const L = await import("leaflet");
       if (!active || !elementRef.current) return;
 
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const map = L.map(elementRef.current, {
         zoomControl: false,
         attributionControl: false,
-      }).setView([center.lat, center.lng], 14);
+        zoomAnimation: !reducedMotion,
+        fadeAnimation: false,
+        markerZoomAnimation: false,
+        inertia: true,
+        inertiaDeceleration: 3200,
+        inertiaMaxSpeed: 1100,
+        easeLinearity: 0.25,
+        wheelDebounceTime: 80,
+        wheelPxPerZoomLevel: 100,
+        zoomSnap: 0.5,
+        zoomDelta: 0.5,
+      }).setView([initialCenterRef.current.lat, initialCenterRef.current.lng], 14);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      // CartoDB Voyager clean Google-Maps style tile layer
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
@@ -56,37 +79,66 @@ export function MapView({
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
           subdomains: "abcd",
           maxZoom: 19,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
+          keepBuffer: 2,
+          detectRetina: false,
         }
       ).addTo(map);
 
       map.on("click", (event: { latlng: { lat: number; lng: number } }) => {
-        onSelect?.({ lat: event.latlng.lat, lng: event.latlng.lng });
+        onSelectRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng });
       });
 
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
+
+      resizeObserver = new ResizeObserver(() => {
+        window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+      });
+      resizeObserver.observe(elementRef.current);
     }
+
     setup();
 
     return () => {
       active = false;
+      resizeObserver?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
+      layerRef.current = null;
     };
-  }, [center.lat, center.lng, onSelect]);
+  }, []);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setView([center.lat, center.lng], mapRef.current.getZoom(), { animate: true });
-  }, [center]);
+    const map = mapRef.current;
+    if (!map) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const target = { lat: center.lat, lng: center.lng };
+    const current = map.getCenter();
+    const movedEnough = Math.abs(current.lat - target.lat) + Math.abs(current.lng - target.lng) > 0.00008;
+
+    if (!movedEnough) return;
+
+    map.panTo([target.lat, target.lng], {
+      animate: !reducedMotion,
+      duration: reducedMotion ? 0 : 0.28,
+      easeLinearity: 0.3,
+      noMoveStart: true,
+    });
+  }, [center.lat, center.lng]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function redraw() {
       if (!mapRef.current || !layerRef.current) return;
       const L = await import("leaflet");
+      if (cancelled || !layerRef.current) return;
+
       layerRef.current.clearLayers();
 
-      // Render origin pin
       if (selected) {
         const originIcon = L.divIcon({
           className: "custom-map-icon origin-icon",
@@ -94,18 +146,13 @@ export function MapView({
           iconSize: [80, 40],
           iconAnchor: [40, 36],
         });
-        L.marker([selected.lat, selected.lng], { icon: originIcon }).addTo(layerRef.current);
+        L.marker([selected.lat, selected.lng], { icon: originIcon, keyboard: false }).addTo(layerRef.current);
       }
 
-      // Render shop pins
       for (const shop of shops) {
         const isSelected = selectedShopId === shop.id;
         const isMatching = matchingSet ? matchingSet.has(shop.id) : true;
-        const statusClass = isSelected
-          ? "is-selected"
-          : isMatching
-          ? "is-matching"
-          : "is-muted";
+        const statusClass = isSelected ? "is-selected" : isMatching ? "is-matching" : "is-muted";
 
         const shopIcon = L.divIcon({
           className: `custom-map-icon shop-icon ${statusClass}`,
@@ -123,11 +170,15 @@ export function MapView({
           iconAnchor: [70, 36],
         });
 
-        const marker = L.marker([shop.lat, shop.lng], { icon: shopIcon });
+        const marker = L.marker([shop.lat, shop.lng], {
+          icon: shopIcon,
+          riseOnHover: true,
+          keyboard: true,
+        });
 
         const popupContent = `
           <div class="map-popup-card">
-            <img src="${shop.coverImage}" alt="${shop.name}" class="map-popup-img" />
+            <img src="${shop.coverImage}" alt="${shop.name}" class="map-popup-img" loading="lazy" decoding="async" />
             <div class="map-popup-body">
               <div class="map-popup-brand">${shop.brand}</div>
               <h4 class="map-popup-title">${shop.name}</h4>
@@ -135,25 +186,29 @@ export function MapView({
               <div class="map-popup-meta">
                 <span>⭐ ${shop.googleRating}</span>
                 <span>NT$${shop.basePrice}起</span>
-                <span class="${shop.openNow ? "open-text" : "closed-text"}">${
-                  shop.openNow ? "營業中" : "未營業"
-                }</span>
+                <span class="${shop.openNow ? "open-text" : "closed-text"}">${shop.openNow ? "營業中" : "未營業"}</span>
               </div>
               <a href="/shops/${shop.slug}" class="map-popup-link">查看店家細節與菜單 →</a>
             </div>
           </div>
         `;
 
-        marker.bindPopup(popupContent, { maxWidth: 260 });
-        marker.on("click", () => {
-          onShopSelect?.(shop);
+        marker.bindPopup(popupContent, {
+          maxWidth: 260,
+          autoPan: true,
+          autoPanPadding: [24, 24],
+          keepInView: true,
         });
+        marker.on("click", () => onShopSelectRef.current?.(shop));
         marker.addTo(layerRef.current);
       }
     }
 
     redraw();
-  }, [selected, shops, matchingSet, selectedShopId, onShopSelect]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, shops, matchingSet, selectedShopId]);
 
   return <div ref={elementRef} className="map-frame" style={{ height }} aria-label="台北拉麵動態地圖" />;
 }
