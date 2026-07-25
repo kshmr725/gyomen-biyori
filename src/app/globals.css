@@ -1938,49 +1938,53 @@ select {
   }
 }
 
-.koi-swimming-orbit {
-  transform-origin: 200px 200px;
-  animation: koi-orbit-rotate 12s infinite linear;
+/* Natural Swimming Fish Animation (NO spinning in circles!) */
+.natural-swimming-fish {
+  animation: natural-fish-float 4s infinite ease-in-out alternate;
 }
 
-@keyframes koi-orbit-rotate {
+@keyframes natural-fish-float {
   0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.koi-tail-fin {
-  transform-origin: 70px 220px;
-  animation: koi-tail-wag 0.8s infinite ease-in-out alternate;
-}
-
-@keyframes koi-tail-wag {
-  0% {
-    transform: rotate(-10deg);
-  }
-  100% {
-    transform: rotate(15deg);
-  }
-}
-
-.orbit-ripple {
-  animation: ripple-pulse 3s infinite ease-in-out;
-  transform-origin: 200px 270px;
-}
-
-@keyframes ripple-pulse {
-  0%, 100% {
-    transform: scale(0.96);
-    opacity: 0.3;
+    transform: translateY(0px) rotate(0deg);
   }
   50% {
-    transform: scale(1.04);
-    opacity: 0.6;
+    transform: translateY(-6px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(4px) rotate(-2deg);
   }
 }
+
+.natural-tail-wag {
+  transform-origin: 306px 270px;
+  animation: natural-tail-swing 1.2s infinite ease-in-out alternate;
+}
+
+@keyframes natural-tail-swing {
+  0% {
+    transform: rotate(-12deg);
+  }
+  100% {
+    transform: rotate(14deg);
+  }
+}
+
+.fish-ripple {
+  animation: fish-ripple-expand 3s infinite ease-out;
+  transform-origin: 320px 260px;
+}
+
+@keyframes fish-ripple-expand {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
 
 /* Mobile Responsive Header & Bottom App Nav Bar */
 .mobile-header-actions {
