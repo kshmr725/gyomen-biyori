@@ -1982,6 +1982,135 @@ select {
   }
 }
 
+/* Mobile Responsive Header & Bottom App Nav Bar */
+.mobile-header-actions {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-view-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .site-header {
+    padding: 10px 16px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Floating iOS App Style Bottom Tab Bar */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line);
+    z-index: 9999;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 700;
+    gap: 3px;
+    transition: color 0.2s ease;
+  }
+
+  .mobile-nav-item.active {
+    color: var(--red);
+  }
+
+  .mobile-nav-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* Add padding to body so content is never blocked by bottom nav */
+  body {
+    padding-bottom: 74px;
+  }
+
+  /* Explore View Mobile Segment Switcher */
+  .mobile-view-toggle {
+    display: flex;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .mobile-tab-btn {
+    flex: 1;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-tab-btn.active {
+    background: #ffffff;
+    color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .map-wrapper.hide-mobile,
+  .shop-list.hide-mobile {
+    display: none !important;
+  }
+
+  .map-wrapper.show-mobile,
+  .shop-list.show-mobile {
+    display: block !important;
+  }
+
+  /* Compact Hero Typography on Mobile */
+  .hero-copy h1 {
+    font-size: 42px;
+    letter-spacing: 2px;
+  }
+
+  .hero-art-container {
+    max-width: 280px;
+    margin-top: 10px;
+  }
+}
+
+
 
 
 

@@ -8,17 +8,21 @@ import { shops } from "@/lib/seed";
 import { adminScore, queueRank } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
 import type { Coordinates, Shop } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n";
 
 const TAIPEI_CENTER = { lat: 25.0478, lng: 121.5170 };
 type Sort = "walk" | "score" | "queue";
+type MobileTab = "list" | "map";
 
 export function ExploreView() {
+  const { t } = useLanguage();
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
   const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [sort, setSort] = useState<Sort>("walk");
   const [minutes, setMinutes] = useState<Record<string, number>>({});
   const [routeStatus, setRouteStatus] = useState("正在計算預計地點步行時間…");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("list");
 
   const selectCenter = useCallback((point: Coordinates) => {
     setRouteStatus("正在計算地點步行路線…");
@@ -72,8 +76,8 @@ export function ExploreView() {
 
   return (
     <div className="explore-container">
-      <div className="explore-search-bar paper-card" style={{ marginBottom: "20px" }}>
-        <h3>🔍 搜尋預計地點 / 捷運站作為中心點</h3>
+      <div className="explore-search-bar paper-card" style={{ marginBottom: "16px" }}>
+        <h3>🔍 搜尋地點 / 捷運站為中心點</h3>
         <LocationSearch
           onSelectLocation={handleSelectLocation}
           onUseGPS={handleUseGPS}
@@ -81,8 +85,25 @@ export function ExploreView() {
         />
       </div>
 
+      {/* Mobile Mode Switcher Segment (🗺️ 地圖 / 📋 店家清單) */}
+      <div className="mobile-view-toggle">
+        <button
+          className={`mobile-tab-btn ${mobileTab === "list" ? "active" : ""}`}
+          onClick={() => setMobileTab("list")}
+        >
+          📋 店家清單 ({sorted.length})
+        </button>
+        <button
+          className={`mobile-tab-btn ${mobileTab === "map" ? "active" : ""}`}
+          onClick={() => setMobileTab("map")}
+        >
+          🗺️ 互動地圖
+        </button>
+      </div>
+
       <section className="explore-grid">
-        <div>
+        {/* Map Container */}
+        <div className={`map-wrapper ${mobileTab === "map" ? "show-mobile" : "hide-mobile"}`}>
           <MapView
             center={center}
             selected={center}
@@ -92,11 +113,15 @@ export function ExploreView() {
             onShopSelect={(shop) => {
               setSelectedShop(shop);
               setCenter({ lat: shop.lat, lng: shop.lng });
+              // Switch to list view on mobile when shop is clicked
+              setMobileTab("list");
             }}
-            height={640}
+            height={440}
           />
         </div>
-        <div className="shop-list">
+
+        {/* Shop List Container */}
+        <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
           <div className="list-toolbar">
             <div>
               <strong>{shops.length} 間店家 (中心點：{selectedLocationName})</strong>
