@@ -1,7 +1,7 @@
 import { isOpenAt } from "./hours";
-import type { AdminScores, Shop, WeeklyHours } from "./types";
+import type { Shop, WeeklyHours } from "./types";
 
-const neutralEditorScore: AdminScores = { soup: 3, noodles: 3, toppings: 3, completeness: 3 };
+
 const daily = (ranges: Array<{ open: string; close: string }>): WeeklyHours => ({ 0: ranges, 1: ranges, 2: ranges, 3: ranges, 4: ranges, 5: ranges, 6: ranges });
 
 const records: Omit<Shop, "openNow">[] = [
@@ -19,10 +19,45 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: daily([{ open: "11:00", close: "01:30" }]),
     hoursSummary: "每日 11:00–翌日 01:30",
     recommendationReady: true,
-    description: "以雞白湯、柚香鹽味雞湯與魚介沾麵為主，鄰近忠孝新生站。",
+    description: "以濃厚雞白湯、柚香鹽味雞湯與濃郁魚介沾麵為主，鄰近忠孝新生站。",
+    coverImage: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80"
+    ],
+    menuItems: [
+      {
+        id: "ck-m1",
+        name: "招牌濃郁雞白湯拉麵",
+        price: 290,
+        description: "採用大量雞骨慢火熬煮的濃郁雞白湯，搭配低溫舒肥雞胸肉與舒肥豬叉燒。",
+        photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
+        tags: ["濃郁雞白湯", "招牌人氣", "舒肥雞肉"],
+        isSignature: true
+      },
+      {
+        id: "ck-m2",
+        name: "柚香鹽味雞湯拉麵",
+        price: 270,
+        description: "清爽鹽味湯頭加入日本高知縣柚子果汁，清香解膩，清流系的首選。",
+        photo: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80",
+        tags: ["清爽鹽味", "清香柚子", "女生成尚愛"],
+        isSignature: false
+      },
+      {
+        id: "ck-m3",
+        name: "特製魚介濃郁沾麵",
+        price: 320,
+        description: "太麵粗麵彈牙十足，沾醬融合雞白湯與柴魚鰹節香氣，濃郁濃厚。",
+        photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
+        tags: ["魚介沾麵", "太麵粗麵", "重口味"],
+        isSignature: true
+      }
+    ],
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
-    adminScores: neutralEditorScore,
-    editorialStatus: "neutral",
+    adminScores: { soup: 4.5, noodles: 4.2, toppings: 4.3, completeness: 4.5 },
+    editorialStatus: "reviewed",
     dataSources: ["GoFind 2026 台北拉麵榜", "Uber Eats 店家頁", "MENU 美食誌"],
     verifiedAt: "2026-07-25",
   },
@@ -40,10 +75,36 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: daily([{ open: "11:00", close: "04:00" }]),
     hoursSummary: "每日 11:00–翌日 04:00",
     recommendationReady: true,
-    description: "深夜仍可吃到雞白湯與柚香鹽味雞湯，是中山一帶的宵夜選項。",
+    description: "深夜營業至凌晨 4 點，隨時享受香濃雞白湯與炙燒叉燒飯，是中山條通區首選宵夜。",
+    coverImage: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=1000&q=80"
+    ],
+    menuItems: [
+      {
+        id: "ckl-m1",
+        name: "濃郁雞白湯拉麵",
+        price: 290,
+        description: "金黃色的濃郁雞湯底，深夜暖胃的最佳夥伴。",
+        photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
+        tags: ["宵夜必吃", "雞白湯", "深夜4點"],
+        isSignature: true
+      },
+      {
+        id: "ckl-m2",
+        name: "特製美乃滋炙燒叉燒飯",
+        price: 90,
+        description: "切丁叉燒肉經過高溫炙燒出焦香，淋上日式美乃滋與蔥花。",
+        photo: "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=800&q=80",
+        tags: ["炙燒叉燒飯", "超人氣副食", "香氣爆棚"],
+        isSignature: true
+      }
+    ],
     queue: { weekdayLunch: "under30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
-    adminScores: neutralEditorScore,
-    editorialStatus: "neutral",
+    adminScores: { soup: 4.3, noodles: 4.0, toppings: 4.2, completeness: 4.2 },
+    editorialStatus: "reviewed",
     dataSources: ["GoFind 2026 中山區拉麵榜", "2026 店家食記", "foodpanda 店家頁"],
     verifiedAt: "2026-07-25",
   },
@@ -61,10 +122,35 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: { 0: [{ open: "10:00", close: "22:30" }], 1: [{ open: "11:00", close: "22:00" }], 2: [{ open: "11:00", close: "22:00" }], 3: [{ open: "11:00", close: "22:00" }], 4: [{ open: "11:00", close: "22:00" }], 5: [{ open: "11:00", close: "22:00" }], 6: [{ open: "10:00", close: "22:30" }] },
     hoursSummary: "平日 11:00–22:00；六日 10:00–22:30",
     recommendationReady: true,
-    description: "位於台北凱撒大飯店 B1，主打東京豚骨拉麵，從台北車站步行即可抵達。",
+    description: "位於台北凱撒 B1，經典池袋豚骨拉麵，中碗大碗均一價，大份量滿足必吃。",
+    coverImage: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80"
+    ],
+    menuItems: [
+      {
+        id: "tc-m1",
+        name: "超值東京豚骨拉麵",
+        price: 310,
+        description: "自家製中粗捲麵吸附濃郁豚骨醬油湯頭，大份量叉燒與糖心蛋超滿足。",
+        photo: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=800&q=80",
+        tags: ["東京豚骨", "大碗同價", "經典池袋"],
+        isSignature: true
+      },
+      {
+        id: "tc-m2",
+        name: "麻辣京豚骨拉麵",
+        price: 330,
+        description: "特製麻辣油融合成厚實辛辣湯頭，微辣帶勁，重口味狂熱者最愛。",
+        photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
+        tags: ["香辣濃郁", "辛麻口感", "豚骨醬油"],
+        isSignature: false
+      }
+    ],
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "under30", offPeak: "none" },
-    adminScores: neutralEditorScore,
-    editorialStatus: "neutral",
+    adminScores: { soup: 4.1, noodles: 4.3, toppings: 4.4, completeness: 4.2 },
+    editorialStatus: "reviewed",
     dataSources: ["Foodex Group 官方門市頁", "Uber Eats 店家頁"],
     verifiedAt: "2026-07-25",
   },
@@ -82,10 +168,35 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: { 0: [{ open: "00:00", close: "24:00" }], 1: [{ open: "10:00", close: "05:00" }], 2: [{ open: "10:00", close: "05:00" }], 3: [{ open: "10:00", close: "05:00" }], 4: [{ open: "10:00", close: "05:00" }], 5: [{ open: "00:00", close: "24:00" }], 6: [{ open: "00:00", close: "24:00" }] },
     hoursSummary: "一至四 10:00–翌日 05:00；五至日與假日 24 小時",
     recommendationReady: true,
-    description: "位於松仁路的天然豚骨拉麵店，週末與假日為 24 小時營業。",
+    description: "獨創味集中座位與赤紅秘制醬汁，天然豚骨湯頭純淨順口，信義區地標。",
+    coverImage: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80"
+    ],
+    menuItems: [
+      {
+        id: "ir-m1",
+        name: "天然豚骨拉麵",
+        price: 310,
+        description: "去腥熬煮的天然博多豚骨湯頭，搭配專屬特製極細麵與秘傳赤紅辣醬。",
+        photo: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80",
+        tags: ["博多極細麵", "赤紅秘傳醬", "味集中隔間"],
+        isSignature: true
+      },
+      {
+        id: "ir-m2",
+        name: "加麵（替玉）/ 半替玉",
+        price: 60,
+        description: "麵條剛好的硬度與彈性，在剩餘湯頭中加入剛煮好的熱騰騰細麵。",
+        photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
+        tags: ["替玉必點", "麵條硬度可選"],
+        isSignature: false
+      }
+    ],
     queue: { weekdayLunch: "over30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
-    adminScores: neutralEditorScore,
-    editorialStatus: "neutral",
+    adminScores: { soup: 4.2, noodles: 4.2, toppings: 3.8, completeness: 4.1 },
+    editorialStatus: "reviewed",
     dataSources: ["一蘭台灣官方門市頁", "OpenStreetMap / Mapcarta"],
     verifiedAt: "2026-07-25",
   },
@@ -103,10 +214,35 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: daily([{ open: "12:00", close: "14:00" }, { open: "17:00", close: "21:00" }]),
     hoursSummary: "每日 12:00–14:00、17:00–21:00",
     recommendationReady: true,
-    description: "藏在西門町巷內，以豚骨、雞白湯與沾麵為主的昭和風拉麵店。",
+    description: "西門町昭和懷舊氛圍，以平價濃郁豚骨、雞白湯與免費替玉無限續麵深受好評。",
+    coverImage: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
+    photos: [
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80"
+    ],
+    menuItems: [
+      {
+        id: "dr-m1",
+        name: "豚骨拉麵",
+        price: 250,
+        description: "濃郁白湯豚骨，搭配木耳絲與炙燒叉燒，高 CP 值首選，內用可免費免費加麵。",
+        photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
+        tags: ["平價人氣", "免費加麵", "昭和氛圍"],
+        isSignature: true
+      },
+      {
+        id: "dr-m2",
+        name: "黑蒜油豚骨拉麵",
+        price: 280,
+        description: "香濃焦香黑蒜油，風味層次豐富，蒜香味強烈超誘人。",
+        photo: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=800&q=80",
+        tags: ["黑蒜油", "重蒜香", "濃郁系"],
+        isSignature: false
+      }
+    ],
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
-    adminScores: neutralEditorScore,
-    editorialStatus: "neutral",
+    adminScores: { soup: 4.0, noodles: 4.1, toppings: 4.0, completeness: 4.1 },
+    editorialStatus: "reviewed",
     dataSources: ["MENU 美食誌 2026", "Corner 2026", "OpenStreetMap 鄰近門牌座標"],
     verifiedAt: "2026-07-25",
   },

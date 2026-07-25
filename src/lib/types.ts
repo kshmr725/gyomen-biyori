@@ -7,6 +7,16 @@ export type QueueEstimate = { weekdayLunch: QueueLevel; weekdayDinner: QueueLeve
 export type AdminScores = { soup: number; noodles: number; toppings: number; completeness: number };
 export type TimeRange = { open: string; close: string };
 export type WeeklyHours = Partial<Record<0 | 1 | 2 | 3 | 4 | 5 | 6, TimeRange[]>>;
+export type MenuItem = {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  photo: string;
+  tags: string[];
+  isSignature?: boolean;
+};
+
 export type Shop = {
   id: string;
   slug: string;
@@ -23,6 +33,9 @@ export type Shop = {
   hoursSummary: string;
   recommendationReady: boolean;
   description: string;
+  coverImage: string;
+  photos: string[];
+  menuItems: MenuItem[];
   queue: QueueEstimate;
   adminScores: AdminScores;
   editorialStatus: "neutral" | "reviewed";
@@ -31,3 +44,4 @@ export type Shop = {
 };
 export type RecommendationPreferences = { walkMinutes: number; budget: BudgetChoice; queue: QueueChoice; novelty: NoveltyChoice; eatenIds: Set<string> };
 export type RecommendationResult = { selected: Shop | null; alternatives: Shop[]; ranked: Array<{ shop: Shop; score: number }>; reason: string };
+
