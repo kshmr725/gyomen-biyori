@@ -4,6 +4,24 @@ import { shops } from "@/lib/seed";
 import { queueLabel } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
 
+function ScoreMeter({ label, score }: { label: string; score: number }) {
+  const percentage = (score / 5) * 100;
+  const stars = "★".repeat(Math.floor(score)) + (score % 1 >= 0.5 ? "½" : "");
+  return (
+    <div className="score-meter-row">
+      <div className="score-meter-header">
+        <span className="score-meter-label">{label}</span>
+        <span className="score-meter-value">
+          <span className="score-stars">{stars}</span> {score} / 5.0
+        </span>
+      </div>
+      <div className="score-meter-bar-track">
+        <div className="score-meter-bar-fill" style={{ width: `${percentage}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default async function ShopPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const shop = shops.find((item) => item.slug === slug);
@@ -13,8 +31,9 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
   return (
     <main className="page-shell detail-page">
       <Link className="text-link back-link" href="/explore">
-        ← 回到地圖與瀏覽
+        ← 回到地圖與清單
       </Link>
+
       <section className="detail-hero">
         <div className="shop-cover-wrapper">
           <img src={shop.coverImage} alt={shop.name} className="shop-cover-img" />
@@ -25,12 +44,12 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
           <h1>{shop.name}</h1>
           <p className="detail-copy">{shop.description}</p>
           <div className="tag-row">
-            <span>⭐ Google {shop.googleRating}</span>
-            <span>💰 基本款 NT${shop.basePrice}</span>
-            <span className={shop.openNow ? "open-tag" : "closed-tag"}>
+            <span className="tag-chip gold">⭐ Google {shop.googleRating}</span>
+            <span className="tag-chip green">💰 基本款 NT${shop.basePrice}</span>
+            <span className={`tag-chip ${shop.openNow ? "open-chip" : "closed-chip"}`}>
               {shop.openNow ? "🟢 目前營業中" : "🔴 目前未營業"}
             </span>
-            <span>⏳ {queueLabel(queueLevelAt(shop))}</span>
+            <span className="tag-chip muted">⏳ {queueLabel(queueLevelAt(shop))}</span>
           </div>
           <div className="hero-actions">
             <a className="button button-primary" href={navUrl} target="_blank" rel="noreferrer">
@@ -42,8 +61,10 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
 
       {/* Menu & Dish Gallery Section */}
       <section className="menu-gallery-section paper-card">
-        <h2>🍜 店家熱門拉麵與商品菜單</h2>
-        <p className="section-subtitle">點擊商品查看餐點描述、風格標籤與價格資訊</p>
+        <div className="section-header-group">
+          <h2>🍜 店家熱門拉麵與商品菜單</h2>
+          <p className="section-subtitle">附餐點描述、風格標籤與價格資訊</p>
+        </div>
         <div className="menu-items-grid">
           {shop.menuItems.map((item) => (
             <article key={item.id} className="menu-item-card">
@@ -73,59 +94,79 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
       {/* Store Photos Gallery */}
       {shop.photos && shop.photos.length > 0 && (
         <section className="photos-gallery-section paper-card">
-          <h2>📸 店家實景與餐點寫真</h2>
+          <div className="section-header-group">
+            <h2>📸 店家實景與餐點寫真</h2>
+            <p className="section-subtitle">門市外觀、內用氛圍與特色餐點近照</p>
+          </div>
           <div className="photos-grid">
             {shop.photos.map((photoUrl, idx) => (
-              <img key={idx} src={photoUrl} alt={`${shop.name} 照片 ${idx + 1}`} className="gallery-photo" />
+              <div key={idx} className="photo-card-wrapper">
+                <img src={photoUrl} alt={`${shop.name} 照片 ${idx + 1}`} className="gallery-photo" />
+              </div>
             ))}
           </div>
         </section>
       )}
 
       <section className="detail-grid">
-        <article className="paper-card">
-          <h2>店家資訊</h2>
-          <dl>
-            <dt>地址</dt>
-            <dd>{shop.address}</dd>
-            <dt>營業時間</dt>
-            <dd>{shop.hoursSummary}</dd>
-            <dt>代表性價格</dt>
-            <dd>NT${shop.basePrice}</dd>
-            <dt>資料核對日期</dt>
-            <dd>{shop.verifiedAt}</dd>
-          </dl>
+        {/* 店家資訊卡 */}
+        <article className="paper-card info-card">
+          <h2>📍 店家資訊</h2>
+          <div className="info-list">
+            <div className="info-item">
+              <span className="info-label">地址</span>
+              <span className="info-value text-bold">{shop.address}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">營業時間</span>
+              <span className="info-value">{shop.hoursSummary}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">代表性價格</span>
+              <span className="info-value price-highlight">NT${shop.basePrice} 起</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">資料核對日期</span>
+              <span className="info-value date-tag">📅 {shop.verifiedAt}</span>
+            </div>
+          </div>
         </article>
-        <article className="paper-card">
-          <h2>編輯評分</h2>
+
+        {/* 編輯評分卡 */}
+        <article className="paper-card score-card">
+          <h2>⭐ 編輯評分指標</h2>
           {shop.editorialStatus === "reviewed" ? (
-            <dl>
-              <dt>湯頭</dt>
-              <dd>{shop.adminScores.soup} / 5</dd>
-              <dt>麵體</dt>
-              <dd>{shop.adminScores.noodles} / 5</dd>
-              <dt>配料</dt>
-              <dd>{shop.adminScores.toppings} / 5</dd>
-              <dt>整體完成度</dt>
-              <dd>{shop.adminScores.completeness} / 5</dd>
-            </dl>
+            <div className="score-meters-container">
+              <ScoreMeter label="湯頭 (Soup)" score={shop.adminScores.soup} />
+              <ScoreMeter label="麵體 (Noodles)" score={shop.adminScores.noodles} />
+              <ScoreMeter label="配料 (Toppings)" score={shop.adminScores.toppings} />
+              <ScoreMeter label="整體完成度 (Completeness)" score={shop.adminScores.completeness} />
+            </div>
           ) : (
-            <p>尚未由小魚或管理員完成實際試吃評分，因此演算法使用不偏袒任何店家的中性值。</p>
+            <p className="muted-notice">尚未由小魚或管理員完成實際試吃評分，因此演算法使用不偏袒任何店家的中性預設值。</p>
           )}
         </article>
-        <article className="paper-card">
-          <h2>資料來源</h2>
-          <ul>
+
+        {/* 資料來源卡 */}
+        <article className="paper-card source-card">
+          <h2>📖 資料權威來源</h2>
+          <p className="muted-notice">所有資訊皆經由人工核對或官方食記來源驗證</p>
+          <div className="source-chips-grid">
             {shop.dataSources.map((source) => (
-              <li key={source}>{source}</li>
+              <div key={source} className="source-chip">
+                <span className="source-icon">🌐</span>
+                <span className="source-text">{source}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </article>
-        <article className="paper-card">
-          <h2>你的個人紀錄</h2>
-          <p>登入後可收藏、標記吃過、評 1–5 分並記錄是否願意再訪。</p>
-          <Link className="text-link" href="/profile">
-            前往個人頁 →
+
+        {/* 個人紀錄卡 */}
+        <article className="paper-card action-card">
+          <h2>📝 你的個人紀錄</h2>
+          <p className="action-desc">登入 Google 帳號後，可自由收藏、標記已吃過、評分並記錄再訪意願。</p>
+          <Link className="button button-primary full-btn" href="/profile">
+            前往個人專屬頁面 →
           </Link>
         </article>
       </section>
