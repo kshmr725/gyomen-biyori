@@ -28,6 +28,7 @@ export function ExploreView() {
     setRouteStatus("正在計算地點步行路線…");
     setCenter(point);
     setSelectedLocationName("地圖點選位置");
+    setSelectedShop(null);
   }, []);
 
   const handleUseGPS = useCallback(() => {
@@ -35,6 +36,7 @@ export function ExploreView() {
       setRouteStatus("正在計算 GPS 目前定位步行路線…");
       setCenter({ lat: coords.latitude, lng: coords.longitude });
       setSelectedLocationName("GPS 目前定位");
+      setSelectedShop(null);
     });
   }, []);
 
@@ -42,10 +44,13 @@ export function ExploreView() {
     setRouteStatus(`正在計算以「${name}」為中心的路線…`);
     setCenter(coords);
     setSelectedLocationName(name);
+    setSelectedShop(null);
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    setMinutes({});
+
     fetch("/api/walking-times", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,7 +60,10 @@ export function ExploreView() {
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.message ?? "步行路線暫時無法使用");
-        setMinutes(Object.fromEntries(payload.durations.map((item: { id: string; minutes: number }) => [item.id, item.minutes])));
+        const nextMinutes = Object.fromEntries(
+          payload.durations.map((item: { id: string; minutes: number }) => [item.id, item.minutes])
+        );
+        setMinutes(nextMinutes);
         setRouteStatus(payload.source === "cache" ? "使用 24 小時內可信快取" : `使用以「${selectedLocationName}」為中心的路線`);
       })
       .catch((error: unknown) => {
@@ -63,8 +71,9 @@ export function ExploreView() {
         setMinutes({});
         setRouteStatus(error instanceof Error ? error.message : "步行路線暫時無法使用");
       });
+
     return () => controller.abort();
-  }, [center, selectedLocationName]);
+  }, [center.lat, center.lng, selectedLocationName]);
 
   const sorted = useMemo(() => {
     return [...shops].sort((a, b) => {
@@ -76,16 +85,23 @@ export function ExploreView() {
 
   const handleShopSelectFromMap = useCallback((shop: Shop) => {
     setSelectedShop(shop);
-    setCenter({ lat: shop.lat, lng: shop.lng });
-    setMobileTab("list");
 
-    // Auto-scroll shop card to center of viewport smoothly!
-    window.setTimeout(() => {
+    const isMobileMap = window.matchMedia("(max-width: 900px)").matches;
+    if (isMobileMap) setMobileTab("list");
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const scrollToCard = () => {
       const cardEl = document.getElementById(`shop-card-${shop.id}`);
-      if (cardEl) {
-        cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 60);
+      if (!cardEl) return;
+      cardEl.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: isMobileMap ? "start" : "center",
+      });
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scrollToCard);
+    });
   }, []);
 
   return (
@@ -99,7 +115,6 @@ export function ExploreView() {
         />
       </div>
 
-      {/* Mobile Mode Switcher Segment (🗺️ 地圖 / 📋 店家清單) */}
       <div className="mobile-view-toggle">
         <button
           className={`mobile-tab-btn ${mobileTab === "list" ? "active" : ""}`}
@@ -116,7 +131,6 @@ export function ExploreView() {
       </div>
 
       <section className="explore-grid">
-        {/* Sticky Map Container on Desktop */}
         <div className={`map-wrapper ${mobileTab === "map" ? "show-mobile" : "hide-mobile"}`}>
           <MapView
             center={center}
@@ -129,7 +143,6 @@ export function ExploreView() {
           />
         </div>
 
-        {/* Natural Unrestricted Shop List Container */}
         <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
           <div className="list-toolbar">
             <div>
@@ -148,7 +161,7 @@ export function ExploreView() {
             </div>
           )}
           {sorted.map((shop) => (
-            <div key={shop.id} id={`shop-card-${shop.id}`} style={{ scrollMarginTop: "100px" }}>
+            <div key={shop.id} id={`shop-card-${shop.id}`} className="shop-card-slot">
               <ShopCard
                 shop={shop}
                 walkingMinutes={minutes[shop.id] ?? 0}
