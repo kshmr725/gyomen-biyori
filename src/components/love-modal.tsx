@@ -18,17 +18,17 @@ export function LoveModal({ isOpen, onClose }: LoveModalProps) {
         <button className="modal-close-btn" onClick={onClose}>✕</button>
 
         <div className="love-header-badge">
-          <span>🐟❤️ SPECIAL EASTER EGG FOR FISH</span>
+          <span>🐟🍜 SPECIAL EDITION FOR LITTLE FISH</span>
         </div>
 
-        <h2 className="love-title">這是我做給小魚的專屬愛意</h2>
+        <h2 className="love-title">小魚專屬拉麵美食指南</h2>
 
         <div className="love-message-box">
           <p className="love-paragraph">
-            這座「魚麵日和」拉麵地圖的每一行程式碼、每一次捷運路線計算、每一個介面細節，都是我為你用心量身打造的。
+            這座「魚麵日和」地圖，是用來記錄我們一起吃拉麵的點點滴滴。地點選好了，剩下的就交給我！
           </p>
           <p className="love-paragraph highlight">
-            願陪你吃遍台北、日本與世界上的每一碗拉麵 🍜❤️
+            願陪你吃遍台北、日本與世界上的每一碗美味拉麵 🍜✨
           </p>
         </div>
 
@@ -37,12 +37,12 @@ export function LoveModal({ isOpen, onClose }: LoveModalProps) {
             className="love-heart-btn"
             onClick={() => setLoveHearts((prev) => prev + 1)}
           >
-            💖 點擊送出愛意 ({loveHearts})
+            🍜 陪小魚吃拉麵 ({loveHearts})
           </button>
         </div>
 
         <button className="button button-primary love-close-btn" onClick={onClose}>
-          收下愛意 ❤️
+          好耶，出發吃拉麵！🍜
         </button>
       </div>
     </div>
