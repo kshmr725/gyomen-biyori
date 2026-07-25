@@ -28,7 +28,7 @@ export function LoveModal({ isOpen, onClose }: LoveModalProps) {
             這座「魚麵日和」地圖，是用來記錄我們一起吃拉麵的點點滴滴。地點選好了，剩下的就交給我！
           </p>
           <p className="love-paragraph highlight">
-            願陪你吃遍台北、日本與世界上的每一碗美味拉麵 🍜✨
+            希望陪妳吃遍台北、日本與世界上的每一碗美味拉麵 🍜✨
           </p>
         </div>
 
