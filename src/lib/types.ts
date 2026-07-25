@@ -17,6 +17,8 @@ export type MenuItem = {
   isSignature?: boolean;
 };
 
+export type TravelMode = "walk" | "mrt" | "any";
+
 export type Shop = {
   id: string;
   slug: string;
@@ -36,12 +38,22 @@ export type Shop = {
   coverImage: string;
   photos: string[];
   menuItems: MenuItem[];
+  mrtInfo?: { station: string; walkMinutes: number };
   queue: QueueEstimate;
   adminScores: AdminScores;
   editorialStatus: "neutral" | "reviewed";
   dataSources: string[];
   verifiedAt: string;
 };
-export type RecommendationPreferences = { walkMinutes: number; budget: BudgetChoice; queue: QueueChoice; novelty: NoveltyChoice; eatenIds: Set<string> };
+export type RecommendationPreferences = {
+  travelMode?: TravelMode;
+  travelMinutes?: number;
+  walkMinutes?: number;
+  budget: BudgetChoice;
+  queue: QueueChoice;
+  novelty: NoveltyChoice;
+  eatenIds: Set<string>;
+};
 export type RecommendationResult = { selected: Shop | null; alternatives: Shop[]; ranked: Array<{ shop: Shop; score: number }>; reason: string };
+
 

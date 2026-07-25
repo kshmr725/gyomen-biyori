@@ -6,7 +6,7 @@ import { MapView } from "@/components/map-view";
 import { ShopCard } from "@/components/shop-card";
 import { shops } from "@/lib/seed";
 import { rankShops, recommendShops } from "@/lib/recommendation";
-import type { BudgetChoice, Coordinates, NoveltyChoice, QueueChoice, RecommendationResult, Shop } from "@/lib/types";
+import type { BudgetChoice, Coordinates, NoveltyChoice, QueueChoice, RecommendationResult, Shop, TravelMode } from "@/lib/types";
 
 const TAIPEI_CENTER = { lat: 25.0478, lng: 121.5170 };
 
@@ -16,7 +16,8 @@ export function RecommendationWizard() {
   const [selected, setSelected] = useState<Coordinates | null>(null);
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
   const [step, setStep] = useState(0);
-  const [walkMinutes, setWalkMinutes] = useState(15);
+  const [travelMode, setTravelMode] = useState<TravelMode>("mrt");
+  const [travelMinutes, setTravelMinutes] = useState(20);
   const [budget, setBudget] = useState<BudgetChoice>("cheap");
   const [queue, setQueue] = useState<QueueChoice>("under30");
   const [novelty, setNovelty] = useState<NoveltyChoice>("new");
@@ -57,15 +58,14 @@ export function RecommendationWizard() {
   // Real-time matching shops computation for map marker highlighting
   const matchingShopIds = useMemo(() => {
     if (step === 0) return new Set(shops.map((s) => s.id));
-    const preferences = { walkMinutes, budget, queue, novelty, eatenIds };
-    // If route minutes exist, use them, otherwise use fallback route estimation
+    const preferences = { travelMode, travelMinutes, walkMinutes: travelMinutes, budget, queue, novelty, eatenIds };
     const effectiveMinutes = Object.keys(route.minutes).length > 0
       ? route.minutes
       : Object.fromEntries(shops.map((s) => [s.id, 10]));
 
     const ranked = rankShops(shops, effectiveMinutes, preferences);
     return new Set(ranked.map((item) => item.shop.id));
-  }, [step, walkMinutes, budget, queue, novelty, eatenIds, route.minutes]);
+  }, [step, travelMode, travelMinutes, budget, queue, novelty, eatenIds, route.minutes]);
 
   async function calculate() {
     if (!selected) return;
@@ -88,12 +88,12 @@ export function RecommendationWizard() {
       );
       setRoute({ loading: false, error: null, source: payload.source as RouteState["source"], minutes });
 
-      const recResult = recommendShops(shops, minutes, { walkMinutes, budget, queue, novelty, eatenIds });
+      const recResult = recommendShops(shops, minutes, { travelMode, travelMinutes, walkMinutes: travelMinutes, budget, queue, novelty, eatenIds });
       setResult(recResult);
       if (recResult.selected) {
         setCenter({ lat: recResult.selected.lat, lng: recResult.selected.lng });
       }
-      setStep(5);
+      setStep(6);
     } catch (error) {
       setRoute({
         loading: false,
@@ -125,7 +125,7 @@ export function RecommendationWizard() {
           selectedShopId={result?.selected?.id}
           onSelect={selectPoint}
           onShopSelect={(shop) => setActivePreviewShop(shop)}
-          height={520}
+          height={540}
         />
         <div className="map-caption">
           <span>{selected ? "📍 已設定出發位置" : "👉 點擊地圖設定出發位置"}</span>
@@ -145,47 +145,72 @@ export function RecommendationWizard() {
             </button>
           </Step>
         )}
+
         {step === 1 && (
-          <Step title="願意走多久？" kicker="STEP 02">
+          <Step title="偏好的交通方式？" kicker="STEP 02">
+            <p>台北拉麵地圖支援捷運、散步或多元搭乘模式，不再侷限於全程步行！</p>
             <ChoiceGroup
-              values={[5, 10, 15, 20]}
-              selected={walkMinutes}
+              values={["mrt", "walk", "any"] as TravelMode[]}
+              selected={travelMode}
               onSelect={(v) => {
-                setWalkMinutes(v);
+                setTravelMode(v);
                 setStep(2);
               }}
-              format={(v) => `${v} 分鐘內`}
+              format={(v) =>
+                v === "mrt"
+                  ? "🚇 捷運 ＋ 步行 (推薦台北最實用)"
+                  : v === "walk"
+                  ? "🚶 全程散步 (近距離純步行)"
+                  : "🛵 騎車 / 不限交通工具"
+              }
             />
           </Step>
         )}
+
         {step === 2 && (
-          <Step title="今天的預算上限？" kicker="STEP 03">
+          <Step title="預估單程時間上限？" kicker="STEP 03">
+            <ChoiceGroup
+              values={[10, 15, 20, 30]}
+              selected={travelMinutes}
+              onSelect={(v) => {
+                setTravelMinutes(v);
+                setStep(3);
+              }}
+              format={(v) => `${v} 分鐘內可達`}
+            />
+          </Step>
+        )}
+
+        {step === 3 && (
+          <Step title="今天的預算上限？" kicker="STEP 04">
             <ChoiceGroup
               values={["cheap", "standard", "unlimited"] as BudgetChoice[]}
               selected={budget}
               onSelect={(v) => {
                 setBudget(v);
-                setStep(3);
+                setStep(4);
               }}
               format={(v) => (v === "cheap" ? "平價 · ≤ NT$250" : v === "standard" ? "一般 · ≤ NT$350" : "不限預算")}
             />
           </Step>
         )}
-        {step === 3 && (
-          <Step title="最多願意排隊多久？" kicker="STEP 04">
+
+        {step === 4 && (
+          <Step title="最多願意排隊多久？" kicker="STEP 05">
             <ChoiceGroup
               values={["none", "under30", "unlimited"] as QueueChoice[]}
               selected={queue}
               onSelect={(v) => {
                 setQueue(v);
-                setStep(4);
+                setStep(5);
               }}
               format={(v) => (v === "none" ? "不用排隊" : v === "under30" ? "30 分鐘內" : "不限排隊時間")}
             />
           </Step>
         )}
-        {step === 4 && (
-          <Step title="今天想嘗試新店家嗎？" kicker="STEP 05">
+
+        {step === 5 && (
+          <Step title="今天想嘗試新店家嗎？" kicker="STEP 06">
             <ChoiceGroup
               values={["new", "repeat"] as NoveltyChoice[]}
               selected={novelty}
@@ -193,7 +218,7 @@ export function RecommendationWizard() {
               format={(v) => (v === "new" ? "想吃沒吃過的" : "吃過也可以")}
             />
             <button className="button button-primary full" onClick={calculate} disabled={route.loading}>
-              {route.loading ? "正在計算最佳步行路線…" : `替我選一間 (符合：${matchingShopIds.size}間)`}
+              {route.loading ? "正在計算路線與交通時間…" : `替我選一間 (符合：${matchingShopIds.size}間)`}
             </button>
           </Step>
         )}
@@ -209,13 +234,13 @@ export function RecommendationWizard() {
           </div>
         )}
 
-        {step === 5 && result && (
+        {step === 6 && result && (
           result.selected ? (
             <div>
               <p className="eyebrow">TODAY&apos;S RECOMMENDED BOWL</p>
               <h2>今天就吃這間！</h2>
               {route.source === "demo" && (
-                <p className="warning-note">目前為本機估算；正式環境會使用實際步行路線。</p>
+                <p className="warning-note">目前為本機估算；正式環境會使用實際路線計算。</p>
               )}
               <ShopCard
                 shop={result.selected}
@@ -244,7 +269,7 @@ export function RecommendationWizard() {
           ) : (
             <div className="empty-state">
               <h2>沒有完全符合條件的店家</h2>
-              <p>我們堅持誠實原則，不會暗中放寬你的條件。請嘗試放寬步行時間、預算或排隊時間限制。</p>
+              <p>我們堅持誠實原則，不會暗中放寬你的條件。請嘗試切換為「捷運＋步行」或增加交通時間與預算限制。</p>
               <button className="button button-primary" onClick={() => setStep(1)}>
                 重新設定篩選條件
               </button>

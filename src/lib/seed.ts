@@ -1,7 +1,6 @@
 import { isOpenAt } from "./hours";
 import type { Shop, WeeklyHours } from "./types";
 
-
 const daily = (ranges: Array<{ open: string; close: string }>): WeeklyHours => ({ 0: ranges, 1: ranges, 2: ranges, 3: ranges, 4: ranges, 5: ranges, 6: ranges });
 
 const records: Omit<Shop, "openNow">[] = [
@@ -55,6 +54,7 @@ const records: Omit<Shop, "openNow">[] = [
         isSignature: true
       }
     ],
+    mrtInfo: { station: "忠孝新生站", walkMinutes: 3 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.5, noodles: 4.2, toppings: 4.3, completeness: 4.5 },
     editorialStatus: "reviewed",
@@ -102,6 +102,7 @@ const records: Omit<Shop, "openNow">[] = [
         isSignature: true
       }
     ],
+    mrtInfo: { station: "中山站", walkMinutes: 6 },
     queue: { weekdayLunch: "under30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.3, noodles: 4.0, toppings: 4.2, completeness: 4.2 },
     editorialStatus: "reviewed",
@@ -148,6 +149,7 @@ const records: Omit<Shop, "openNow">[] = [
         isSignature: false
       }
     ],
+    mrtInfo: { station: "台北車站", walkMinutes: 2 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "under30", offPeak: "none" },
     adminScores: { soup: 4.1, noodles: 4.3, toppings: 4.4, completeness: 4.2 },
     editorialStatus: "reviewed",
@@ -194,6 +196,7 @@ const records: Omit<Shop, "openNow">[] = [
         isSignature: false
       }
     ],
+    mrtInfo: { station: "象山站", walkMinutes: 5 },
     queue: { weekdayLunch: "over30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.2, noodles: 4.2, toppings: 3.8, completeness: 4.1 },
     editorialStatus: "reviewed",
@@ -240,6 +243,7 @@ const records: Omit<Shop, "openNow">[] = [
         isSignature: false
       }
     ],
+    mrtInfo: { station: "西門站", walkMinutes: 4 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.0, noodles: 4.1, toppings: 4.0, completeness: 4.1 },
     editorialStatus: "reviewed",

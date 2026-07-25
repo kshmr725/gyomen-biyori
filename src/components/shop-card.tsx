@@ -47,7 +47,10 @@ export function ShopCard({
         )}
 
         <div className="tag-row">
-          <span>{walkingMinutes > 0 ? `🚶 步行約 ${walkingMinutes} 分` : "🚶 步行時間計算中"}</span>
+          {shop.mrtInfo && (
+            <span className="tag-chip green">🚇 {shop.mrtInfo.station} 步行 {shop.mrtInfo.walkMinutes} 分</span>
+          )}
+          <span>{walkingMinutes > 0 ? `🚶 直線/步行 ${walkingMinutes} 分` : "🚶 步行時間計算中"}</span>
           <span>💰 基本款 NT${shop.basePrice}</span>
           <span>⏳ {queueLabel(queueLevelAt(shop))}</span>
         </div>
