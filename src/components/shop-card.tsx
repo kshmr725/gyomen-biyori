@@ -58,7 +58,14 @@ export function ShopCard({
   return (
     <article className={`shop-card ${featured ? "featured" : ""} ${isSelected ? "selected-shop-card" : ""}`}>
       <div className="shop-card-media">
-        <img src={shop.coverImage} alt={shop.name} className="shop-card-cover" />
+        <img
+          src={shop.coverImage}
+          alt={shop.name}
+          className="shop-card-cover"
+          loading={featured ? "eager" : "lazy"}
+          decoding="async"
+          fetchPriority={featured ? "high" : "low"}
+        />
         {isSelected && (
           <span className="selected-map-badge">
             📍 {lang === "en" ? "Selected on Map" : "地圖已點選"}
@@ -111,7 +118,7 @@ export function ShopCard({
           )}
           <span>
             {walkingMinutes > 0
-              ? (lang === "en" ? `🚶 ${walkingMinutes}m walk` : `🚶 直線/步行 ${walkingMinutes} 分`)
+              ? (lang === "en" ? `🚶 ${walkingMinutes}m walk` : `🚶 步行 ${walkingMinutes} 分`)
               : (lang === "en" ? "🚶 Calculating walk time..." : "🚶 步行時間計算中")}
           </span>
           <span>💰 {t.basePrice}{shop.basePrice}</span>
