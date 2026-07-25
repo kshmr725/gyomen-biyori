@@ -1081,28 +1081,52 @@ select {
   padding: 28px 8px;
 }
 
+.explore-container {
+  padding-top: 12px;
+  margin-bottom: 48px;
+}
+
+.explore-search-bar {
+  margin-bottom: 20px;
+}
+
 .explore-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.7fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 0.75fr);
   gap: 24px;
+  align-items: start;
+}
+
+.map-wrapper {
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .shop-list {
-  max-height: 640px;
-  overflow-y: auto;
-  padding-right: 6px;
+  max-height: none;
+  overflow-y: visible;
+  padding-right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .list-toolbar {
-  position: sticky;
-  top: 0;
+  position: relative;
   background: var(--paper);
   z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 0 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
 }
+
 
 .list-toolbar select {
   background: #fff;

@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     title: "魚麵日和",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 

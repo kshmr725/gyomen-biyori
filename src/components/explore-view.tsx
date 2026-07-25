@@ -8,14 +8,12 @@ import { shops } from "@/lib/seed";
 import { adminScore, queueRank } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
 import type { Coordinates, Shop } from "@/lib/types";
-import { useLanguage } from "@/lib/i18n";
 
 const TAIPEI_CENTER = { lat: 25.0478, lng: 121.5170 };
 type Sort = "walk" | "score" | "queue";
 type MobileTab = "list" | "map";
 
 export function ExploreView() {
-  const { t } = useLanguage();
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
   const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
@@ -76,7 +74,7 @@ export function ExploreView() {
 
   return (
     <div className="explore-container">
-      <div className="explore-search-bar paper-card" style={{ marginBottom: "16px" }}>
+      <div className="explore-search-bar paper-card">
         <h3>🔍 搜尋地點 / 捷運站為中心點</h3>
         <LocationSearch
           onSelectLocation={handleSelectLocation}
@@ -102,7 +100,7 @@ export function ExploreView() {
       </div>
 
       <section className="explore-grid">
-        {/* Map Container */}
+        {/* Sticky Map Container on Desktop */}
         <div className={`map-wrapper ${mobileTab === "map" ? "show-mobile" : "hide-mobile"}`}>
           <MapView
             center={center}
@@ -113,14 +111,13 @@ export function ExploreView() {
             onShopSelect={(shop) => {
               setSelectedShop(shop);
               setCenter({ lat: shop.lat, lng: shop.lng });
-              // Switch to list view on mobile when shop is clicked
               setMobileTab("list");
             }}
-            height={440}
+            height={680}
           />
         </div>
 
-        {/* Shop List Container */}
+        {/* Natural Unrestricted Shop List Container */}
         <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
           <div className="list-toolbar">
             <div>
