@@ -1,0 +1,120 @@
+/* Performance-focused motion overrides */
+
+html {
+  scroll-behavior: auto;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+.page-shell,
+.home-shell,
+.step-box {
+  animation: none !important;
+}
+
+.button,
+.choice,
+.shop-card,
+.shop-pin-badge,
+.source-chip,
+.gallery-photo,
+.score-meter-bar-fill {
+  transition-property: transform, opacity, background-color, border-color, box-shadow, width;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+
+.map-frame {
+  contain: layout paint;
+  isolation: isolate;
+  box-shadow: var(--shadow-sm);
+}
+
+.map-frame .leaflet-tile-pane {
+  will-change: auto;
+}
+
+.map-frame .leaflet-zoom-animated {
+  will-change: transform;
+}
+
+.map-wrapper,
+.map-column {
+  contain: layout paint;
+}
+
+.shop-card-slot {
+  scroll-margin-top: 96px;
+  content-visibility: auto;
+  contain-intrinsic-size: 620px;
+}
+
+.shop-card {
+  transform: translateZ(0);
+}
+
+.origin-pin-pulse,
+.shop-pin-pulse {
+  animation-duration: 2.4s !important;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .button:hover,
+  .choice:hover,
+  .shop-card:hover,
+  .source-chip-link:hover,
+  .photo-card-wrapper:hover .gallery-photo {
+    transform: none !important;
+    box-shadow: inherit;
+  }
+
+  .origin-pin-pulse,
+  .shop-pin-pulse {
+    display: none;
+  }
+
+  .site-header,
+  .area-pill {
+    backdrop-filter: none;
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    overscroll-behavior-y: auto;
+  }
+
+  .map-wrapper,
+  .map-column {
+    position: relative !important;
+    top: auto !important;
+    contain: layout paint;
+  }
+
+  .map-frame {
+    box-shadow: none;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .origin-pin-pulse,
+  .shop-pin-pulse {
+    display: none;
+  }
+}
