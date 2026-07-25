@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandIcon } from "@/components/brand-icon";
 import { useLanguage } from "@/lib/i18n";
 
 export function SiteFooter() {
@@ -10,9 +11,12 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="site-footer-inner">
         <div className="footer-brand">
-          <div className="brand-lockup">
-            <span className="brand-jp">{t.brandTitle}</span>
-            <span className="brand-en">GYOMEN BIYORI</span>
+          <div className="brand-lockup brand-lockup-with-icon">
+            <BrandIcon compact />
+            <span className="brand-wordmark">
+              <span className="brand-jp">{t.brandTitle}</span>
+              <span className="brand-en">GYOMEN BIYORI</span>
+            </span>
           </div>
           <p className="footer-subtext">{t.footerSubtext}</p>
         </div>
