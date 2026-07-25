@@ -2102,6 +2102,31 @@ select {
     display: block !important;
   }
 
+  /* Unrestricted mobile full page flow - no nested scrollbox trap */
+  .explore-grid {
+    display: block !important;
+  }
+
+  .shop-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    padding-right: 0 !important;
+  }
+
+  .list-toolbar {
+    position: relative !important;
+    top: auto !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .list-toolbar select {
+    width: 100% !important;
+  }
+
   /* Compact Hero Typography on Mobile */
   .hero-copy h1 {
     font-size: 42px;
@@ -2113,6 +2138,7 @@ select {
     margin-top: 10px;
   }
 }
+
 
 /* PWA Installation Banner */
 .pwa-install-banner {
