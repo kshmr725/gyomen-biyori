@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MapView } from "@/components/map-view";
 import { ShopCard } from "@/components/shop-card";
+import { LocationSearch } from "@/components/location-search";
 import { shops } from "@/lib/seed";
 import { rankShops, recommendShops } from "@/lib/recommendation";
 import type { BudgetChoice, Coordinates, NoveltyChoice, QueueChoice, RecommendationResult, Shop, TravelMode } from "@/lib/types";
@@ -14,6 +15,7 @@ type RouteState = { loading: boolean; error: string | null; source: "valhalla" |
 
 export function RecommendationWizard() {
   const [selected, setSelected] = useState<Coordinates | null>(null);
+  const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
   const [step, setStep] = useState(0);
   const [travelMode, setTravelMode] = useState<TravelMode>("mrt");
@@ -35,21 +37,38 @@ export function RecommendationWizard() {
       try {
         const parsed = JSON.parse(saved) as Coordinates;
         setCenter(parsed);
+        setSelected(parsed);
       } catch {
         window.localStorage.removeItem("gyomen:last-location");
       }
     }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
+  }, []);
+
+  const handleUseGPS = useCallback(() => {
     navigator.geolocation?.getCurrentPosition(({ coords }) => {
       const current = { lat: coords.latitude, lng: coords.longitude };
       setCenter(current);
       setSelected(current);
+      setSelectedLocationName("GPS 目前定位");
+      setStep(1);
     });
-    return () => window.clearTimeout(restoreTimer);
   }, []);
 
-  const selectPoint = useCallback((point: Coordinates) => {
+  const handleSelectLocation = useCallback((coords: Coordinates, name: string) => {
+    setSelected(coords);
+    setCenter(coords);
+    setSelectedLocationName(name);
+    setStep(1);
+    setResult(null);
+    window.localStorage.setItem("gyomen:last-location", JSON.stringify(coords));
+  }, []);
+
+  const selectPointFromMap = useCallback((point: Coordinates) => {
     setSelected(point);
     setCenter(point);
+    setSelectedLocationName("地圖自訂點位");
     setStep(1);
     setResult(null);
     window.localStorage.setItem("gyomen:last-location", JSON.stringify(point));
@@ -123,32 +142,40 @@ export function RecommendationWizard() {
           shops={shops}
           matchingShopIds={matchingShopIds}
           selectedShopId={result?.selected?.id}
-          onSelect={selectPoint}
+          onSelect={selectPointFromMap}
           onShopSelect={(shop) => setActivePreviewShop(shop)}
           height={540}
         />
         <div className="map-caption">
-          <span>{selected ? "📍 已設定出發位置" : "👉 點擊地圖設定出發位置"}</span>
+          <span>{selected ? `📍 中心點：${selectedLocationName}` : "👉 請輸入地點或點擊地圖"}</span>
           <span>符合條件店家：{matchingShopIds.size} 間</span>
         </div>
       </div>
+
       <div className="wizard-panel paper-card">
         {step === 0 && (
-          <Step title="先選擇一個出發位置" kicker="STEP 01">
-            <p>可以用目前 GPS 定位，也可以直接在地圖上點擊。位置資訊僅儲存在本機。</p>
-            <button
-              className="button button-primary full"
-              onClick={() => selected && setStep(1)}
-              disabled={!selected}
-            >
-              {selected ? "確認出發位置，開始選擇" : "請在地圖點選出發位置"}
-            </button>
+          <Step title="輸入預計地點或選取位置" kicker="STEP 01">
+            <p>可直接輸入捷運站、地標名稱，或點選下方的熱門地標作為搜尋中心。</p>
+            <LocationSearch
+              onSelectLocation={handleSelectLocation}
+              onUseGPS={handleUseGPS}
+              currentSelectedName={selectedLocationName}
+            />
+            {selected && (
+              <button
+                className="button button-primary full-btn"
+                style={{ marginTop: "16px" }}
+                onClick={() => setStep(1)}
+              >
+                確認選取「{selectedLocationName}」，下一步 →
+              </button>
+            )}
           </Step>
         )}
 
         {step === 1 && (
           <Step title="偏好的交通方式？" kicker="STEP 02">
-            <p>台北拉麵地圖支援捷運、散步或多元搭乘模式，不再侷限於全程步行！</p>
+            <p>預設以「{selectedLocationName}」為中心計算周邊搭乘與步行路線：</p>
             <ChoiceGroup
               values={["mrt", "walk", "any"] as TravelMode[]}
               selected={travelMode}
@@ -160,7 +187,7 @@ export function RecommendationWizard() {
                 v === "mrt"
                   ? "🚇 捷運 ＋ 步行 (推薦台北最實用)"
                   : v === "walk"
-                  ? "🚶 全程散步 (近距離純步行)"
+                  ? "🚶 全程散步 (純步行)"
                   : "🛵 騎車 / 不限交通工具"
               }
             />
@@ -240,7 +267,7 @@ export function RecommendationWizard() {
               <p className="eyebrow">TODAY&apos;S RECOMMENDED BOWL</p>
               <h2>今天就吃這間！</h2>
               {route.source === "demo" && (
-                <p className="warning-note">目前為本機估算；正式環境會使用實際路線計算。</p>
+                <p className="warning-note">目前以「{selectedLocationName}」為中心進行路線估算。</p>
               )}
               <ShopCard
                 shop={result.selected}
@@ -270,8 +297,8 @@ export function RecommendationWizard() {
             <div className="empty-state">
               <h2>沒有完全符合條件的店家</h2>
               <p>我們堅持誠實原則，不會暗中放寬你的條件。請嘗試切換為「捷運＋步行」或增加交通時間與預算限制。</p>
-              <button className="button button-primary" onClick={() => setStep(1)}>
-                重新設定篩選條件
+              <button className="button button-primary" onClick={() => setStep(0)}>
+                重新選擇地點與條件
               </button>
             </div>
           )

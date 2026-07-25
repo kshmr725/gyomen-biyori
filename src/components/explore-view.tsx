@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapView } from "@/components/map-view";
 import { ShopCard } from "@/components/shop-card";
+import { LocationSearch } from "@/components/location-search";
 import { shops } from "@/lib/seed";
 import { adminScore, queueRank } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
@@ -13,21 +14,30 @@ type Sort = "walk" | "score" | "queue";
 
 export function ExploreView() {
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
+  const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [sort, setSort] = useState<Sort>("walk");
   const [minutes, setMinutes] = useState<Record<string, number>>({});
-  const [routeStatus, setRouteStatus] = useState("正在取得實際步行時間…");
+  const [routeStatus, setRouteStatus] = useState("正在計算預計地點步行時間…");
 
   const selectCenter = useCallback((point: Coordinates) => {
-    setRouteStatus("正在取得實際步行時間…");
+    setRouteStatus("正在計算地點步行路線…");
     setCenter(point);
+    setSelectedLocationName("地圖點選位置");
   }, []);
 
-  useEffect(() => {
+  const handleUseGPS = useCallback(() => {
     navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      setRouteStatus("正在取得實際步行時間…");
+      setRouteStatus("正在計算 GPS 目前定位步行路線…");
       setCenter({ lat: coords.latitude, lng: coords.longitude });
+      setSelectedLocationName("GPS 目前定位");
     });
+  }, []);
+
+  const handleSelectLocation = useCallback((coords: Coordinates, name: string) => {
+    setRouteStatus(`正在計算以「${name}」為中心的路線…`);
+    setCenter(coords);
+    setSelectedLocationName(name);
   }, []);
 
   useEffect(() => {
@@ -42,7 +52,7 @@ export function ExploreView() {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.message ?? "步行路線暫時無法使用");
         setMinutes(Object.fromEntries(payload.durations.map((item: { id: string; minutes: number }) => [item.id, item.minutes])));
-        setRouteStatus(payload.source === "cache" ? "使用 24 小時內可信快取" : "使用實際步行路線");
+        setRouteStatus(payload.source === "cache" ? "使用 24 小時內可信快取" : `使用以「${selectedLocationName}」為中心的路線`);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -50,7 +60,7 @@ export function ExploreView() {
         setRouteStatus(error instanceof Error ? error.message : "步行路線暫時無法使用");
       });
     return () => controller.abort();
-  }, [center]);
+  }, [center, selectedLocationName]);
 
   const sorted = useMemo(() => {
     return [...shops].sort((a, b) => {
@@ -61,42 +71,53 @@ export function ExploreView() {
   }, [minutes, sort]);
 
   return (
-    <section className="explore-grid">
-      <div>
-        <MapView
-          center={center}
-          selected={center}
-          shops={shops}
-          selectedShopId={selectedShop?.id}
-          onSelect={selectCenter}
-          onShopSelect={(shop) => {
-            setSelectedShop(shop);
-            setCenter({ lat: shop.lat, lng: shop.lng });
-          }}
-          height={640}
+    <div className="explore-container">
+      <div className="explore-search-bar paper-card" style={{ marginBottom: "20px" }}>
+        <h3>🔍 搜尋預計地點 / 捷運站作為中心點</h3>
+        <LocationSearch
+          onSelectLocation={handleSelectLocation}
+          onUseGPS={handleUseGPS}
+          currentSelectedName={selectedLocationName}
         />
       </div>
-      <div className="shop-list">
-        <div className="list-toolbar">
-          <div>
-            <strong>{shops.length} 間已核對店家 (含完整餐點與照片)</strong>
-            <div className="microcopy">{routeStatus}</div>
-          </div>
-          <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-            <option value="walk">步行時間排序</option>
-            <option value="score">綜合評分排序</option>
-            <option value="queue">排隊時間排序</option>
-          </select>
+
+      <section className="explore-grid">
+        <div>
+          <MapView
+            center={center}
+            selected={center}
+            shops={shops}
+            selectedShopId={selectedShop?.id}
+            onSelect={selectCenter}
+            onShopSelect={(shop) => {
+              setSelectedShop(shop);
+              setCenter({ lat: shop.lat, lng: shop.lng });
+            }}
+            height={640}
+          />
         </div>
-        {selectedShop && (
-          <div className="selected-banner">
-            📍 地圖已選取：<strong>{selectedShop.name}</strong> (點擊地圖彈窗可查看完整菜單)
+        <div className="shop-list">
+          <div className="list-toolbar">
+            <div>
+              <strong>{shops.length} 間店家 (中心點：{selectedLocationName})</strong>
+              <div className="microcopy">{routeStatus}</div>
+            </div>
+            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+              <option value="walk">步行/距離排序</option>
+              <option value="score">綜合評分排序</option>
+              <option value="queue">排隊時間排序</option>
+            </select>
           </div>
-        )}
-        {sorted.map((shop) => (
-          <ShopCard key={shop.id} shop={shop} walkingMinutes={minutes[shop.id] ?? 0} />
-        ))}
-      </div>
-    </section>
+          {selectedShop && (
+            <div className="selected-banner">
+              📍 地圖已選取：<strong>{selectedShop.name}</strong>
+            </div>
+          )}
+          {sorted.map((shop) => (
+            <ShopCard key={shop.id} shop={shop} walkingMinutes={minutes[shop.id] ?? 0} />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
