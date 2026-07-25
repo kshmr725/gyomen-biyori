@@ -631,6 +631,25 @@ select {
   border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.source-chip-link:hover {
+  background: #f8eee5;
+  border-color: var(--red);
+  color: var(--red);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(162, 61, 43, 0.1);
+}
+
+.source-text {
+  flex: 1;
+}
+
+.external-link-arrow {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--red);
 }
 
 .source-icon {

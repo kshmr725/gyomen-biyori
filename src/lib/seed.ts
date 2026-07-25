@@ -58,7 +58,11 @@ const records: Omit<Shop, "openNow">[] = [
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.5, noodles: 4.2, toppings: 4.3, completeness: 4.5 },
     editorialStatus: "reviewed",
-    dataSources: ["GoFind 2026 台北拉麵榜", "Uber Eats 店家頁", "MENU 美食誌"],
+    dataSources: [
+      { title: "麵屋千雲 官方 Facebook 粉專", url: "https://www.facebook.com/chikumoramen/" },
+      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+光華店" },
+      { title: "Uber Eats 線上菜單頁面", url: "https://www.ubereats.com/tw/store/%E9%BA%B5%E5%B1%8B%E5%8D%83%E9%9B%B2-%E5%85%89%E8%8F%AF%E5%BA%97/t2Vq5V_ITN-p_iH64M2lHQ" }
+    ],
     verifiedAt: "2026-07-25",
   },
   {
@@ -106,7 +110,11 @@ const records: Omit<Shop, "openNow">[] = [
     queue: { weekdayLunch: "under30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.3, noodles: 4.0, toppings: 4.2, completeness: 4.2 },
     editorialStatus: "reviewed",
-    dataSources: ["GoFind 2026 中山區拉麵榜", "2026 店家食記", "foodpanda 店家頁"],
+    dataSources: [
+      { title: "麵屋千雲 林森店 官方 Facebook", url: "https://www.facebook.com/chikumoramen/" },
+      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+林森店" },
+      { title: "Foodpanda 線上外送菜單頁面", url: "https://www.foodpanda.com.tw/restaurant/z4px/mian-wu-qian-yun-lin-sen-dian" }
+    ],
     verifiedAt: "2026-07-25",
   },
   {
@@ -153,7 +161,11 @@ const records: Omit<Shop, "openNow">[] = [
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "under30", offPeak: "none" },
     adminScores: { soup: 4.1, noodles: 4.3, toppings: 4.4, completeness: 4.2 },
     editorialStatus: "reviewed",
-    dataSources: ["Foodex Group 官方門市頁", "Uber Eats 店家頁"],
+    dataSources: [
+      { title: "屯京拉麵 台灣官方門市網站", url: "https://www.foodexgroup.com.tw/brand.php?id=1" },
+      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=屯京拉麵+台北站前店" },
+      { title: "Uber Eats 線上菜單頁面", url: "https://www.ubereats.com/tw/store/%E5%B1%AF%E4%BA%AC%E6%8B%89%E9%BA%B5-%E5%8F%B0%E5%8C%97%E7%AB%99%E5%89%8D%E5%BA%97/zG6C5hS_THuhM-m3yM9xbg" }
+    ],
     verifiedAt: "2026-07-25",
   },
   {
@@ -200,7 +212,11 @@ const records: Omit<Shop, "openNow">[] = [
     queue: { weekdayLunch: "over30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.2, noodles: 4.2, toppings: 3.8, completeness: 4.1 },
     editorialStatus: "reviewed",
-    dataSources: ["一蘭台灣官方門市頁", "OpenStreetMap / Mapcarta"],
+    dataSources: [
+      { title: "一蘭拉麵 台灣台北本店官方網站", url: "https://zh-cht.ichiran.com/shop/taiwan/taipei-honten/" },
+      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=一蘭拉麵+台灣台北本店" },
+      { title: "OpenStreetMap 地理節點紀錄", url: "https://www.openstreetmap.org/node/5307044026" }
+    ],
     verifiedAt: "2026-07-25",
   },
   {
@@ -247,7 +263,11 @@ const records: Omit<Shop, "openNow">[] = [
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.0, noodles: 4.1, toppings: 4.0, completeness: 4.1 },
     editorialStatus: "reviewed",
-    dataSources: ["MENU 美食誌 2026", "Corner 2026", "OpenStreetMap 鄰近門牌座標"],
+    dataSources: [
+      { title: "道樂拉麵 官方 Facebook 粉專", url: "https://www.facebook.com/doraku.ramen/" },
+      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=道樂商店" },
+      { title: "MENU 美食誌 店家食記分享", url: "https://menutaiwan.com/search?q=%E9%81%93%E6%A8%82%E5%95%86%E5%BA%97" }
+    ],
     verifiedAt: "2026-07-25",
   },
 ];

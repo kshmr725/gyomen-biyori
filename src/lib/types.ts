@@ -19,6 +19,8 @@ export type MenuItem = {
 
 export type TravelMode = "walk" | "mrt" | "any";
 
+export type DataSource = { title: string; url: string };
+
 export type Shop = {
   id: string;
   slug: string;
@@ -42,7 +44,7 @@ export type Shop = {
   queue: QueueEstimate;
   adminScores: AdminScores;
   editorialStatus: "neutral" | "reviewed";
-  dataSources: string[];
+  dataSources: DataSource[];
   verifiedAt: string;
 };
 export type RecommendationPreferences = {

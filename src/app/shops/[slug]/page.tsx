@@ -149,15 +149,27 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
 
         {/* 資料來源卡 */}
         <article className="paper-card source-card">
-          <h2>📖 資料權威來源</h2>
-          <p className="muted-notice">所有資訊皆經由人工核對或官方食記來源驗證</p>
+          <h2>📖 資料來源</h2>
+          <p className="muted-notice">所有資訊皆經由人工核對或官方食記來源驗證（點擊可跳轉至真實來源）</p>
           <div className="source-chips-grid">
-            {shop.dataSources.map((source) => (
-              <div key={source} className="source-chip">
-                <span className="source-icon">🌐</span>
-                <span className="source-text">{source}</span>
-              </div>
-            ))}
+            {shop.dataSources.map((source, index) => {
+              const isObj = typeof source === "object" && source !== null;
+              const title = isObj ? source.title : source;
+              const url = isObj ? source.url : `https://www.google.com/search?q=${encodeURIComponent(shop.name + " " + source)}`;
+              return (
+                <a
+                  key={index}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="source-chip source-chip-link"
+                >
+                  <span className="source-icon">🌐</span>
+                  <span className="source-text">{title}</span>
+                  <span className="external-link-arrow">↗</span>
+                </a>
+              );
+            })}
           </div>
         </article>
 
