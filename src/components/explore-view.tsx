@@ -49,7 +49,6 @@ export function ExploreView() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setMinutes({});
 
     fetch("/api/walking-times", {
       method: "POST",
