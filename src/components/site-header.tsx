@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthButton } from "@/components/auth-button";
 import { LoveModal } from "@/components/love-modal";
+import { BrandIcon } from "@/components/brand-icon";
 import { useLanguage } from "@/lib/i18n";
 
 export function SiteHeader() {
@@ -19,7 +20,7 @@ export function SiteHeader() {
     setClickCount(nextCount);
     setIsPulsing(true);
 
-    setTimeout(() => setIsPulsing(false), 500);
+    window.setTimeout(() => setIsPulsing(false), 360);
 
     if (nextCount >= 5) {
       e.preventDefault();
@@ -33,21 +34,23 @@ export function SiteHeader() {
       <header className="site-header">
         <Link
           href="/"
-          className={`brand-lockup ${isPulsing ? "heartbeat-anim" : ""}`}
+          className={`brand-lockup brand-lockup-with-icon ${isPulsing ? "heartbeat-anim" : ""}`}
           onClick={handleLogoClick}
           title="連點 5 次開啟隱藏彩蛋"
+          aria-label={`${t.brandTitle} 首頁`}
         >
-          <span className="brand-jp">{t.brandTitle}</span>
-          <span className="brand-en">GYOMEN BIYORI</span>
+          <BrandIcon compact />
+          <span className="brand-wordmark">
+            <span className="brand-jp">{t.brandTitle}</span>
+            <span className="brand-en">GYOMEN BIYORI</span>
+          </span>
         </Link>
 
-        {/* Desktop Nav Links */}
         <nav className="desktop-nav">
           <Link href="/choose" className={pathname === "/choose" ? "active" : ""}>{t.navChoose}</Link>
           <Link href="/explore" className={pathname === "/explore" ? "active" : ""}>{t.navExplore}</Link>
           <Link href="/profile" className={pathname === "/profile" ? "active" : ""}>{t.navProfile}</Link>
-          
-          {/* Bilingual Language Switcher Toggle */}
+
           <div className="lang-switcher">
             <button
               className={`lang-btn ${lang === "zh" ? "active" : ""}`}
@@ -67,7 +70,6 @@ export function SiteHeader() {
           <AuthButton />
         </nav>
 
-        {/* Mobile Header Right Bar (Language Switcher + Auth) */}
         <div className="mobile-header-actions">
           <div className="lang-switcher">
             <button
@@ -88,7 +90,6 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* Floating iOS App Style Mobile Bottom Navigation Bar */}
       <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
         <Link href="/choose" className={`mobile-nav-item ${pathname === "/choose" ? "active" : ""}`}>
           <span className="mobile-nav-icon">🍜</span>
