@@ -1841,6 +1841,148 @@ select {
   margin-top: 4px;
 }
 
+/* Language Switcher */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.lang-btn.active,
+.lang-btn:hover {
+  color: var(--red);
+}
+
+.lang-divider {
+  color: var(--line);
+  font-size: 11px;
+}
+
+/* Master SVG Hero Artwork Styles */
+.hero-art-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.zen-sun-disc {
+  position: absolute;
+  width: 82%;
+  height: 82%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #F4ECE1 0%, #EADBC8 70%, rgba(234, 219, 200, 0.2) 100%);
+  top: 9%;
+  left: 9%;
+  z-index: 1;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+}
+
+.hero-master-svg {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Vector Animations */
+.steam-path {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: svg-steam-float 3.5s infinite ease-in-out;
+}
+
+.path-1 { animation-delay: 0s; }
+.path-2 { animation-delay: 1.1s; }
+.path-3 { animation-delay: 2.2s; }
+
+@keyframes svg-steam-float {
+  0% {
+    stroke-dashoffset: 120;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  30% {
+    opacity: 0.85;
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+
+.koi-swimming-orbit {
+  transform-origin: 200px 200px;
+  animation: koi-orbit-rotate 12s infinite linear;
+}
+
+@keyframes koi-orbit-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.koi-tail-fin {
+  transform-origin: 70px 220px;
+  animation: koi-tail-wag 0.8s infinite ease-in-out alternate;
+}
+
+@keyframes koi-tail-wag {
+  0% {
+    transform: rotate(-10deg);
+  }
+  100% {
+    transform: rotate(15deg);
+  }
+}
+
+.orbit-ripple {
+  animation: ripple-pulse 3s infinite ease-in-out;
+  transform-origin: 200px 270px;
+}
+
+@keyframes ripple-pulse {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.6;
+  }
+}
+
+
 
 
 

@@ -1,41 +1,50 @@
+"use client";
+
 import Link from "next/link";
-import { FishMark } from "@/components/fish-mark";
+import { HeroArt } from "@/components/hero-art";
+import { useLanguage } from "@/lib/i18n";
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <main className="home-shell">
       <section className="hero-grid">
         <div className="hero-copy">
-          <p className="eyebrow">TAIPEI RAMEN JOURNAL</p>
-          <h1>魚麵日和</h1>
-          <p className="subtitle">小魚的台北拉麵地圖</p>
-          <p className="lede">
-            地點選好了，剩下的交給我們。用步行時間、預算和排隊耐心，替今天選出一碗剛剛好的拉麵。
-          </p>
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1>{t.heroTitle}</h1>
+          <p className="subtitle">{t.heroSubtitle}</p>
+          <p className="lede">{t.heroLede}</p>
           <div className="hero-actions">
-            <Link className="button button-primary" href="/choose">幫我選一間</Link>
-            <Link className="button button-ghost" href="/explore">自由逛逛</Link>
+            <Link className="button button-primary" href="/choose">
+              {t.btnPick}
+            </Link>
+            <Link className="button button-ghost" href="/explore">
+              {t.btnExplore}
+            </Link>
           </div>
-          <p className="microcopy">不做排行榜，也不讓你無限重抽。今天就吃這間。</p>
+          <p className="microcopy">{t.heroMicrocopy}</p>
         </div>
-        <div className="hero-art" aria-hidden="true">
-          <div className="sun-disc" />
-          <div className="ramen-bowl">
-            <span className="steam-trail steam-1" />
-            <span className="steam-trail steam-2" />
-            <span className="steam-trail steam-3" />
-            <span className="noodle noodle-one" />
-            <span className="noodle noodle-two" />
-            <span className="egg" />
-            <span className="nori" />
-          </div>
-          <FishMark />
-        </div>
+
+        <HeroArt />
       </section>
+
       <section className="editorial-strip">
-        <article><span>01</span><h2>點一個位置</h2><p>從現在所在地或台北任何一個角落開始。</p></article>
-        <article><span>02</span><h2>回答三件事</h2><p>走多久、花多少、願不願意排隊。</p></article>
-        <article><span>03</span><h2>只給一個答案</h2><p>從最符合的前三間中替你做決定。</p></article>
+        <article>
+          <span>01</span>
+          <h2>{t.step1Title}</h2>
+          <p>{t.step1Desc}</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h2>{t.step2Title}</h2>
+          <p>{t.step2Desc}</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h2>{t.step3Title}</h2>
+          <p>{t.step3Desc}</p>
+        </article>
       </section>
     </main>
   );
