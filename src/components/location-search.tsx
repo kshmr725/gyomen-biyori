@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Coordinates } from "@/lib/types";
+import { LoveModal } from "@/components/love-modal";
 
 const PRESET_LOCATIONS: Array<{ name: string; area: string; coords: Coordinates }> = [
   { name: "台北車站", area: "中正區", coords: { lat: 25.0478, lng: 121.5170 } },
@@ -26,6 +27,7 @@ export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoveModal, setShowLoveModal] = useState(false);
 
   const filteredPresets = PRESET_LOCATIONS.filter(
     (loc) => loc.name.includes(query) || loc.area.includes(query)
@@ -34,12 +36,22 @@ export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName
   async function handleCustomSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
+
+    const lowerQuery = query.trim().toLowerCase();
+
+    // Easter egg trigger words!
+    if (["小魚", "520", "愛你", "小魚的拉麵地圖", "fish"].includes(lowerQuery)) {
+      setShowLoveModal(true);
+      setSearching(false);
+      return;
+    }
+
     setSearching(true);
     setErrorMessage(null);
 
     // First check preset match
     const matchedPreset = PRESET_LOCATIONS.find((loc) =>
-      loc.name.toLowerCase().includes(query.trim().toLowerCase())
+      loc.name.toLowerCase().includes(lowerQuery)
     );
 
     if (matchedPreset) {
@@ -71,43 +83,47 @@ export function LocationSearch({ onSelectLocation, onUseGPS, currentSelectedName
   }
 
   return (
-    <div className="location-search-box">
-      <form onSubmit={handleCustomSearch} className="search-input-group">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜尋捷運站、地標或地址 (例：中山站、西門町)"
-          className="location-input"
-        />
-        <button type="submit" className="button button-primary search-btn" disabled={searching}>
-          {searching ? "搜尋中…" : "搜尋地點"}
-        </button>
-      </form>
+    <>
+      <div className="location-search-box">
+        <form onSubmit={handleCustomSearch} className="search-input-group">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜尋捷運站、地標或地址 (例：中山站、西門町)"
+            className="location-input"
+          />
+          <button type="submit" className="button button-primary search-btn" disabled={searching}>
+            {searching ? "搜尋中…" : "搜尋地點"}
+          </button>
+        </form>
 
-      {errorMessage && <p className="search-error">{errorMessage}</p>}
+        {errorMessage && <p className="search-error">{errorMessage}</p>}
 
-      <div className="location-quick-presets">
-        <span className="preset-label">熱門捷運站與地標：</span>
-        <div className="preset-chips">
-          {filteredPresets.map((loc) => (
-            <button
-              key={loc.name}
-              type="button"
-              className={`preset-chip ${currentSelectedName === loc.name ? "selected" : ""}`}
-              onClick={() => onSelectLocation(loc.coords, loc.name)}
-            >
-              📍 {loc.name}
-            </button>
-          ))}
+        <div className="location-quick-presets">
+          <span className="preset-label">熱門捷運站與地標：</span>
+          <div className="preset-chips">
+            {filteredPresets.map((loc) => (
+              <button
+                key={loc.name}
+                type="button"
+                className={`preset-chip ${currentSelectedName === loc.name ? "selected" : ""}`}
+                onClick={() => onSelectLocation(loc.coords, loc.name)}
+              >
+                📍 {loc.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="gps-fallback-row">
+          <button type="button" className="button button-ghost gps-btn" onClick={onUseGPS}>
+            📡 使用目前 GPS 自動定位
+          </button>
         </div>
       </div>
 
-      <div className="gps-fallback-row">
-        <button type="button" className="button button-ghost gps-btn" onClick={onUseGPS}>
-          📡 使用目前 GPS 自動定位
-        </button>
-      </div>
-    </div>
+      <LoveModal isOpen={showLoveModal} onClose={() => setShowLoveModal(false)} />
+    </>
   );
 }

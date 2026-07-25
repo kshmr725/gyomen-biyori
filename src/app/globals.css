@@ -1534,4 +1534,113 @@ select {
   border: 1px dashed var(--line);
 }
 
+/* Little Fish (小魚) Romantic Easter Egg Modal & Heartbeat */
+.heartbeat-anim {
+  animation: logo-heartbeat 0.5s ease-in-out;
+}
+
+@keyframes logo-heartbeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15) rotate(-2deg); }
+  100% { transform: scale(1); }
+}
+
+.love-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(45, 20, 30, 0.72);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease;
+}
+
+.love-modal-content {
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  background: #fffdfa;
+  border: 2px solid #f3c2c6;
+  box-shadow: 0 20px 50px rgba(162, 61, 43, 0.25);
+  padding: 36px 28px;
+  position: relative;
+}
+
+.love-header-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #c62828;
+  background: #fce4ec;
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+.love-title {
+  font-family: Georgia, "Noto Serif TC", serif;
+  font-size: 28px;
+  color: #b71c1c;
+  margin-bottom: 20px;
+}
+
+.love-message-box {
+  background: #fff5f5;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px dashed #ef9a9a;
+}
+
+.love-paragraph {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #4a2c2c;
+  margin-bottom: 10px;
+}
+
+.love-paragraph.highlight {
+  font-weight: 700;
+  color: #c62828;
+  font-size: 16px;
+  margin-bottom: 0;
+}
+
+.love-counter-box {
+  margin-bottom: 20px;
+}
+
+.love-heart-btn {
+  background: linear-gradient(135deg, #ff4081, #d81b60);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(216, 27, 96, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.love-heart-btn:hover {
+  transform: scale(1.06);
+}
+
+.love-heart-btn:active {
+  transform: scale(0.96);
+}
+
+.love-close-btn {
+  width: 100%;
+}
+
+
 
