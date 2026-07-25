@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
+
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     const supabase = getSupabaseBrowserClient();
@@ -14,7 +15,25 @@ export function AuthButton() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if (!isSupabaseConfigured()) return <span className="auth-note" title="公開找店功能可用；收藏與紀錄需設定 Supabase">免登入瀏覽</span>;
-  if (user) return <button className="nav-button" onClick={() => getSupabaseBrowserClient().auth.signOut()}>登出</button>;
-  return <button className="nav-button" onClick={() => getSupabaseBrowserClient().auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/profile` } })}>Google 登入</button>;
+  if (user) {
+    return (
+      <button className="nav-button" onClick={() => getSupabaseBrowserClient().auth.signOut()}>
+        登出
+      </button>
+    );
+  }
+
+  return (
+    <button
+      className="nav-button"
+      onClick={() =>
+        getSupabaseBrowserClient().auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: `${window.location.origin}/profile` },
+        })
+      }
+    >
+      Google 登入
+    </button>
+  );
 }
