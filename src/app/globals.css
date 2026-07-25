@@ -1163,6 +1163,38 @@ select {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
+.selected-shop-card {
+  border: 2.5px solid var(--accent);
+  box-shadow: 0 0 0 3px rgba(155, 44, 44, 0.15), 0 8px 24px rgba(155, 44, 44, 0.12);
+  animation: card-pulse-in 0.4s ease-out;
+}
+
+@keyframes card-pulse-in {
+  0% { transform: scale(0.97); opacity: 0.7; }
+  60% { transform: scale(1.01); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.selected-map-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  z-index: 2;
+  letter-spacing: 0.02em;
+  animation: badge-pop 0.3s ease-out;
+}
+
+@keyframes badge-pop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .shop-card-media {
   position: relative;
   width: 100%;

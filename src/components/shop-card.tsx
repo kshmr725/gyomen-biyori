@@ -13,11 +13,13 @@ export function ShopCard({
   walkingMinutes,
   reason,
   featured = false,
+  isSelected = false,
 }: {
   shop: Shop;
   walkingMinutes: number;
   reason?: string;
   featured?: boolean;
+  isSelected?: boolean;
 }) {
   const { t, lang } = useLanguage();
   const [isFav, setIsFav] = useState(false);
@@ -54,10 +56,17 @@ export function ShopCard({
   }
 
   return (
-    <article className={`shop-card ${featured ? "featured" : ""}`}>
+    <article className={`shop-card ${featured ? "featured" : ""} ${isSelected ? "selected-shop-card" : ""}`}>
       <div className="shop-card-media">
         <img src={shop.coverImage} alt={shop.name} className="shop-card-cover" />
-        <span className="area-badge">{shop.area}</span>
+        {isSelected && (
+          <span className="selected-map-badge">
+            📍 {lang === "en" ? "Selected on Map" : "地圖已點選"}
+          </span>
+        )}
+        <span className="area-badge" style={isSelected ? { left: "auto", right: "12px" } : undefined}>
+          {shop.area}
+        </span>
         <span className="rating-badge">⭐ {shop.googleRating}</span>
         {userId && (
           <button

@@ -74,6 +74,20 @@ export function ExploreView() {
     });
   }, [minutes, sort]);
 
+  const handleShopSelectFromMap = useCallback((shop: Shop) => {
+    setSelectedShop(shop);
+    setCenter({ lat: shop.lat, lng: shop.lng });
+    setMobileTab("list");
+
+    // Auto-scroll shop card to center of viewport smoothly!
+    window.setTimeout(() => {
+      const cardEl = document.getElementById(`shop-card-${shop.id}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 60);
+  }, []);
+
   return (
     <div className="explore-container">
       <div className="explore-search-bar paper-card">
@@ -110,11 +124,7 @@ export function ExploreView() {
             shops={shops}
             selectedShopId={selectedShop?.id}
             onSelect={selectCenter}
-            onShopSelect={(shop) => {
-              setSelectedShop(shop);
-              setCenter({ lat: shop.lat, lng: shop.lng });
-              setMobileTab("list");
-            }}
+            onShopSelect={handleShopSelectFromMap}
             height={680}
           />
         </div>
@@ -138,7 +148,13 @@ export function ExploreView() {
             </div>
           )}
           {sorted.map((shop) => (
-            <ShopCard key={shop.id} shop={shop} walkingMinutes={minutes[shop.id] ?? 0} />
+            <div key={shop.id} id={`shop-card-${shop.id}`} style={{ scrollMarginTop: "100px" }}>
+              <ShopCard
+                shop={shop}
+                walkingMinutes={minutes[shop.id] ?? 0}
+                isSelected={selectedShop?.id === shop.id}
+              />
+            </div>
           ))}
         </div>
       </section>
