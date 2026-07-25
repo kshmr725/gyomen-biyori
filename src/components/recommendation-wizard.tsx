@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MapView } from "@/components/map-view";
-import { ShopCard } from "@/components/shop-card";
 import { LocationSearch } from "@/components/location-search";
+import { RamenSwipeDeck } from "@/components/ramen-swipe-deck";
 import { shops } from "@/lib/seed";
-import { rankShops, recommendShops } from "@/lib/recommendation";
-import type { BudgetChoice, Coordinates, NoveltyChoice, QueueChoice, RecommendationResult, Shop, TravelMode } from "@/lib/types";
+import { rankShops } from "@/lib/recommendation";
+import type { BudgetChoice, Coordinates, NoveltyChoice, QueueChoice, Shop, TravelMode } from "@/lib/types";
 
 const TAIPEI_CENTER = { lat: 25.0478, lng: 121.5170 };
 
@@ -24,8 +24,8 @@ export function RecommendationWizard() {
   const [queue, setQueue] = useState<QueueChoice>("under30");
   const [novelty, setNovelty] = useState<NoveltyChoice>("new");
   const [route, setRoute] = useState<RouteState>({ loading: false, error: null, source: null, minutes: {} });
-  const [result, setResult] = useState<RecommendationResult | null>(null);
-  const [rerolled, setRerolled] = useState(false);
+  const [candidateShops, setCandidateShops] = useState<Shop[]>([]);
+  const [currentSwipeIndex, setCurrentSwipeIndex] = useState(0);
   const [activePreviewShop, setActivePreviewShop] = useState<Shop | null>(null);
 
   const eatenIds = useMemo(() => new Set<string>(), []);
@@ -61,7 +61,7 @@ export function RecommendationWizard() {
     setCenter(coords);
     setSelectedLocationName(name);
     setStep(1);
-    setResult(null);
+    setCandidateShops([]);
     window.localStorage.setItem("gyomen:last-location", JSON.stringify(coords));
   }, []);
 
@@ -70,7 +70,7 @@ export function RecommendationWizard() {
     setCenter(point);
     setSelectedLocationName("地圖自訂點位");
     setStep(1);
-    setResult(null);
+    setCandidateShops([]);
     window.localStorage.setItem("gyomen:last-location", JSON.stringify(point));
   }, []);
 
@@ -89,8 +89,9 @@ export function RecommendationWizard() {
   async function calculate() {
     if (!selected) return;
     setRoute({ loading: true, error: null, source: null, minutes: {} });
-    setResult(null);
-    setRerolled(false);
+    setCandidateShops([]);
+    setCurrentSwipeIndex(0);
+
     try {
       const response = await fetch("/api/walking-times", {
         method: "POST",
@@ -107,10 +108,13 @@ export function RecommendationWizard() {
       );
       setRoute({ loading: false, error: null, source: payload.source as RouteState["source"], minutes });
 
-      const recResult = recommendShops(shops, minutes, { travelMode, travelMinutes, walkMinutes: travelMinutes, budget, queue, novelty, eatenIds });
-      setResult(recResult);
-      if (recResult.selected) {
-        setCenter({ lat: recResult.selected.lat, lng: recResult.selected.lng });
+      const preferences = { travelMode, travelMinutes, walkMinutes: travelMinutes, budget, queue, novelty, eatenIds };
+      const ranked = rankShops(shops, minutes, preferences);
+      const matchedList = ranked.map((item) => item.shop);
+      setCandidateShops(matchedList);
+
+      if (matchedList.length > 0) {
+        setCenter({ lat: matchedList[0].lat, lng: matchedList[0].lng });
       }
       setStep(6);
     } catch (error) {
@@ -123,15 +127,14 @@ export function RecommendationWizard() {
     }
   }
 
-  function reroll() {
-    if (!result || rerolled || result.alternatives.length === 0) return;
-    const [next, ...rest] = result.alternatives;
-    setResult({ ...result, selected: next, alternatives: result.selected ? [result.selected, ...rest] : rest });
-    if (next) {
-      setCenter({ lat: next.lat, lng: next.lng });
+  const handleSwipeIndexChange = useCallback((newIndex: number) => {
+    setCurrentSwipeIndex(newIndex);
+    if (candidateShops[newIndex]) {
+      setCenter({ lat: candidateShops[newIndex].lat, lng: candidateShops[newIndex].lng });
     }
-    setRerolled(true);
-  }
+  }, [candidateShops]);
+
+  const selectedShopId = candidateShops[currentSwipeIndex]?.id;
 
   return (
     <section className="wizard-grid">
@@ -141,7 +144,7 @@ export function RecommendationWizard() {
           selected={selected}
           shops={shops}
           matchingShopIds={matchingShopIds}
-          selectedShopId={result?.selected?.id}
+          selectedShopId={selectedShopId}
           onSelect={selectPointFromMap}
           onShopSelect={(shop) => setActivePreviewShop(shop)}
           height={540}
@@ -261,47 +264,15 @@ export function RecommendationWizard() {
           </div>
         )}
 
-        {step === 6 && result && (
-          result.selected ? (
-            <div>
-              <p className="eyebrow">TODAY&apos;S RECOMMENDED BOWL</p>
-              <h2>今天就吃這間！</h2>
-              {route.source === "demo" && (
-                <p className="warning-note">目前以「{selectedLocationName}」為中心進行路線估算。</p>
-              )}
-              <ShopCard
-                shop={result.selected}
-                walkingMinutes={route.minutes[result.selected.id]}
-                reason={result.reason}
-                featured
-              />
-              <div className="result-actions">
-                <a
-                  className="button button-primary"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(result.selected.address)}`}
-                >
-                  📍 開啟 Google Maps 導航
-                </a>
-                <button
-                  className="button button-ghost"
-                  disabled={rerolled || result.alternatives.length === 0}
-                  onClick={reroll}
-                >
-                  {rerolled ? "已更換過一次" : "🔄 換一間"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <h2>沒有完全符合條件的店家</h2>
-              <p>我們堅持誠實原則，不會暗中放寬你的條件。請嘗試切換為「捷運＋步行」或增加交通時間與預算限制。</p>
-              <button className="button button-primary" onClick={() => setStep(0)}>
-                重新選擇地點與條件
-              </button>
-            </div>
-          )
+        {step === 6 && (
+          <RamenSwipeDeck
+            shops={candidateShops}
+            routeMinutes={route.minutes}
+            currentIndex={currentSwipeIndex}
+            onIndexChange={handleSwipeIndexChange}
+            onResetFilters={() => setStep(0)}
+            locationName={selectedLocationName}
+          />
         )}
       </div>
 
