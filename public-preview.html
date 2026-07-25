@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>魚麵日和｜小魚的台北拉麵地圖</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3wS9qPLG3IGuuwxYZnQ4sG3Q4f4f4=" crossorigin="" />
+<style>
+:root{--paper:#f6efe4;--ink:#29251f;--muted:#766c61;--line:#d8cbbb;--accent:#a04d37;--card:#fffaf2}
+*{box-sizing:border-box}body{margin:0;font-family:ui-serif,"Noto Serif TC",serif;background:var(--paper);color:var(--ink)}button,select{font:inherit}
+.shell{max-width:1180px;margin:auto;padding:24px}.mast{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.brand small{letter-spacing:.18em;color:var(--muted)}.brand h1{margin:4px 0 0;font-size:34px}.badge{border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:#fff8}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.panel{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px}.intro h2{font-size:clamp(34px,5vw,62px);line-height:1.1;margin:8px 0 14px}.intro p{color:var(--muted);line-height:1.8}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}.controls label{font-size:13px;color:var(--muted)}select{width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid var(--line);background:white}.actions{display:flex;gap:10px;flex-wrap:wrap}.primary,.secondary{border-radius:999px;padding:12px 18px;cursor:pointer}.primary{background:var(--ink);color:white;border:1px solid var(--ink)}.secondary{background:transparent;border:1px solid var(--line);color:var(--ink)}
+#map{height:470px;border-radius:18px;overflow:hidden}.result{margin-top:18px}.resultCard{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;border-top:1px solid var(--line);padding-top:18px}.resultCard h3{font-size:28px;margin:0 0 6px}.meta{color:var(--muted);line-height:1.7}.reason{margin-top:10px;padding:12px 14px;border-left:3px solid var(--accent);background:#fff}.nav{display:inline-block;text-decoration:none;background:var(--accent);color:white;padding:11px 15px;border-radius:999px}.shops{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.shop{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}.shop h3{margin:0 0 8px}.shop p{color:var(--muted);font-size:14px;line-height:1.6}.status{display:inline-block;font-size:12px;padding:4px 8px;border-radius:999px;background:#e9f4e7}.warn{background:#f8e6de}.foot{font-size:13px;color:var(--muted);margin:18px 2px 0;line-height:1.7}@media(max-width:820px){.hero{grid-template-columns:1fr}.shops{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.shell{padding:14px}.mast{align-items:flex-start}.badge{font-size:12px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="mast"><div class="brand"><small>TAIPEI RAMEN MAP</small><h1>魚麵日和</h1></div><div class="badge">公開 MVP 預覽</div></header>
+<section class="hero">
+<div class="panel intro">
+<small>現在就決定，不再選到餓</small>
+<h2>今天，吃哪一碗？</h2>
+<p>選擇可接受的步行時間、預算與排隊程度。系統只會從目前營業中的候選店挑選，並提供一次換店機會。</p>
+<div class="controls">
+<label>步行時間<select id="walk"><option value="5">5 分鐘</option><option value="10">10 分鐘</option><option value="15" selected>15 分鐘</option><option value="20">20 分鐘</option></select></label>
+<label>預算<select id="budget"><option value="250">平價（NT$250 以下）</option><option value="350" selected>一般（NT$350 以下）</option><option value="9999">不限</option></select></label>
+<label>排隊<select id="queue"><option value="none">不用排</option><option value="under30" selected>30 分鐘內</option><option value="any">不限</option></select></label>
+<label>吃過的店<select id="novel"><option value="new" selected>優先沒吃過</option><option value="repeat">可以重複</option></select></label>
+</div>
+<div class="actions"><button id="locate" class="secondary">使用目前位置</button><button id="choose" class="primary">幫我選一間</button><button id="swap" class="secondary" disabled>換一間（限一次）</button></div>
+<div class="result" id="result" aria-live="polite"><p class="meta">先點地圖選位置，或使用目前位置。</p></div>
+</div>
+<div class="panel"><div id="map"></div></div>
+</section>
+<section class="shops" id="shops"></section>
+<p class="foot">資料說明：店名、地址與營業時間採公開來源整理；排隊時間為時段估算，不是即時資訊。步行時間在此公開預覽中採地圖距離換算，正式 Next.js 版已保留 Valhalla／openrouteservice 路線 API 介面。</p>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const shops=[
+{id:'ichiran',name:'一蘭 台灣台北本店',area:'信義',address:'台北市信義區松仁路97號',lat:25.03636,lng:121.56925,price:310,queue:'over30',hours:'一至四 10:00–翌日05:00；五至日及假日24小時'},
+{id:'tonchin',name:'屯京拉麵 台北站前店',area:'台北車站',address:'台北市中正區忠孝西路一段38號B1',lat:25.046239,lng:121.5164,price:310,queue:'under30',hours:'每日約 11:00–21:00，仍應以店家公告為準'},
+{id:'douraku',name:'道樂商店 西門',area:'西門',address:'台北市萬華區成都路27巷12號',lat:25.04308,lng:121.50686,price:250,queue:'under30',hours:'每日 12:00–14:00、17:00–21:00'},
+{id:'chikumo',name:'麵屋千雲 光華店',area:'忠孝新生',address:'台北市中正區臨沂街3巷1號',lat:25.043373,lng:121.53103,price:290,queue:'under30',hours:'營業時間請以店家最新公告為準'}
+];
+let origin={lat:25.0478,lng:121.517};let used=[];let swapUsed=false;let marker;
+const map=L.map('map').setView([origin.lat,origin.lng],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+shops.forEach(s=>L.marker([s.lat,s.lng]).addTo(map).bindPopup(`<b>${s.name}</b><br>${s.address}`));
+marker=L.marker([origin.lat,origin.lng],{draggable:true}).addTo(map).bindPopup('你的選點').openPopup();
+map.on('click',e=>{origin={lat:e.latlng.lat,lng:e.latlng.lng};marker.setLatLng(e.latlng);document.getElementById('result').innerHTML='<p class="meta">位置已更新，按「幫我選一間」。</p>'});
+function km(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lng-a.lng)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function walkMin(s){return Math.max(1,Math.round(km(origin,s)*14))}
+function openNow(s){const d=new Date(),day=d.getDay(),h=d.getHours()+d.getMinutes()/60;if(s.id==='ichiran')return day===0||day===5||day===6||h>=10||h<5;if(s.id==='douraku')return(h>=12&&h<14)||(h>=17&&h<21);if(s.id==='tonchin')return h>=11&&h<21;return true}
+function eligible(){const maxW=+document.getElementById('walk').value,maxB=+document.getElementById('budget').value,q=document.getElementById('queue').value;return shops.map(s=>({...s,walk:walkMin(s)})).filter(s=>openNow(s)&&s.walk<=maxW&&s.price<=maxB&&(q==='any'||s.queue===q||q==='under30'&&s.queue==='none')).sort((a,b)=>a.walk-b.walk)}
+function renderShopList(){document.getElementById('shops').innerHTML=shops.map(s=>`<article class="shop"><span class="status ${openNow(s)?'':'warn'}">${openNow(s)?'目前營業中':'目前未營業'}</span><h3>${s.name}</h3><p>${s.area}｜基本價格約 NT$${s.price}<br>${s.hours}</p></article>`).join('')}
+function pick(isSwap=false){let arr=eligible().filter(s=>!used.includes(s.id));if(!arr.length){document.getElementById('result').innerHTML='<div class="reason">目前沒有完全符合的店。請放寬步行時間、預算或排隊條件。</div>';return}const top=arr.slice(0,3),s=top[Math.floor(Math.random()*top.length)];used.push(s.id);document.getElementById('result').innerHTML=`<div class="resultCard"><div><h3>${s.name}</h3><div class="meta">${s.area}｜步行估算 ${s.walk} 分鐘｜約 NT$${s.price}<br>${s.address}</div><div class="reason">推薦理由：目前營業中，符合你的預算與排隊條件，且在候選店中交通最方便。</div></div><a class="nav" target="_blank" rel="noreferrer" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.address)}">開啟導航</a></div>`;map.setView([s.lat,s.lng],15);if(!isSwap){swapUsed=false;document.getElementById('swap').disabled=false}else{swapUsed=true;document.getElementById('swap').disabled=true}}
+document.getElementById('choose').addEventListener('click',()=>{used=[];pick(false)});document.getElementById('swap').addEventListener('click',()=>{if(!swapUsed)pick(true)});document.getElementById('locate').addEventListener('click',()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{origin={lat:p.coords.latitude,lng:p.coords.longitude};marker.setLatLng([origin.lat,origin.lng]);map.setView([origin.lat,origin.lng],15);document.getElementById('result').innerHTML='<p class="meta">已取得目前位置，按「幫我選一間」。</p>'},()=>alert('無法取得定位，請直接點地圖選位置。')):alert('此瀏覽器不支援定位。'));
+renderShopList();
+</script>
+</body></html>

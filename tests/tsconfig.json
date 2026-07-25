@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "5.0",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "rootDir": "..",
+    "outDir": "../.test-dist"
+  },
+  "include": ["recommendation.test.ts", "../src/lib/types.ts", "../src/lib/hours.ts", "../src/lib/recommendation.ts", "../src/lib/seed.ts"]
+}
+

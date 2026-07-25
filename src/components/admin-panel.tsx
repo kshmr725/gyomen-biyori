@@ -1,0 +1,10 @@
+"use client";
+
+import { useState } from "react";
+import { shops } from "@/lib/seed";
+import { isSupabaseConfigured } from "@/lib/supabase";
+
+export function AdminPanel() {
+  const [selected, setSelected] = useState(shops[0]);
+  return <section className="admin-grid"><aside className="paper-card admin-list"><div className="admin-status">{isSupabaseConfigured() ? "Supabase 已設定" : "帳號資料庫尚未連接"}</div>{shops.map((shop) => <button key={shop.id} className={shop.id === selected.id ? "active" : ""} onClick={() => setSelected(shop)}><strong>{shop.name}</strong><span>{shop.area} · NT${shop.basePrice}</span></button>)}</aside><form className="paper-card admin-form" onSubmit={(event: { preventDefault(): void }) => event.preventDefault()}><p className="eyebrow">SHOP EDITOR</p><h2>{selected.name}</h2><div className="form-grid"><label>品牌<input defaultValue={selected.brand} /></label><label>分店名稱<input defaultValue={selected.name} /></label><label>地址<input defaultValue={selected.address} /></label><label>基本款價格<input type="number" defaultValue={selected.basePrice} /></label><label>湯頭分數<input type="number" min="1" max="5" step="0.1" defaultValue={selected.adminScores.soup} /></label><label>麵體分數<input type="number" min="1" max="5" step="0.1" defaultValue={selected.adminScores.noodles} /></label><label>配料分數<input type="number" min="1" max="5" step="0.1" defaultValue={selected.adminScores.toppings} /></label><label>完成度<input type="number" min="1" max="5" step="0.1" defaultValue={selected.adminScores.completeness} /></label></div><div className="queue-editor"><h3>排隊估算</h3>{Object.entries(selected.queue).map(([key,value]) => <label key={key}>{key}<select defaultValue={value}><option value="none">不用排</option><option value="under30">30 分鐘內</option><option value="over30">超過 30 分鐘</option><option value="unknown">資料不足</option></select></label>)}</div><button className="button button-primary" disabled={!isSupabaseConfigured()}>儲存到 Supabase</button>{!isSupabaseConfigured() && <p className="microcopy">這個介面已完成；設定環境變數與 migration 後才會寫入正式資料。</p>}</form></section>;
+}
