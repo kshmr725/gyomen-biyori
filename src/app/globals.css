@@ -1664,5 +1664,183 @@ select {
   width: 100%;
 }
 
+/* Steaming Ramen Bowl Animation */
+.steam-trail {
+  position: absolute;
+  width: 14px;
+  height: 48px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+  filter: blur(5px);
+  bottom: 140px;
+  animation: steam-rise 3s infinite ease-out;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.steam-1 {
+  left: 90px;
+  animation-delay: 0s;
+}
+
+.steam-2 {
+  left: 155px;
+  animation-delay: 1s;
+}
+
+.steam-3 {
+  left: 220px;
+  animation-delay: 2s;
+}
+
+@keyframes steam-rise {
+  0% {
+    transform: translateY(0) scaleX(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  60% {
+    transform: translateY(-45px) scaleX(1.4);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateY(-80px) scaleX(2);
+    opacity: 0;
+  }
+}
+
+/* Swimming Fish & Water Ripples Animation */
+.fish-mark.swimming {
+  animation: fish-swim 4s infinite ease-in-out;
+}
+
+.fish-mark.swimming .fish-tail {
+  animation: tail-wag 0.8s infinite ease-in-out;
+  transform-origin: left center;
+}
+
+@keyframes fish-swim {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(4px) rotate(2deg);
+  }
+  75% {
+    transform: translateY(-6px) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes tail-wag {
+  0% {
+    transform: rotate(180deg) skewY(0deg);
+  }
+  50% {
+    transform: rotate(180deg) skewY(12deg);
+  }
+  100% {
+    transform: rotate(180deg) skewY(0deg);
+  }
+}
+
+.water-ripple {
+  position: absolute;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ripple-out 2.5s infinite ease-out;
+  top: 10px;
+  left: 10px;
+  width: 50px;
+  height: 30px;
+}
+
+.ripple-1 {
+  animation-delay: 0s;
+}
+
+.ripple-2 {
+  animation-delay: 1.2s;
+}
+
+@keyframes ripple-out {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Site Footer */
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: rgba(248, 244, 237, 0.96);
+  padding: 48px 0 36px;
+  margin-top: 60px;
+}
+
+.site-footer-inner {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.footer-brand .brand-jp {
+  font-family: Georgia, "Noto Serif TC", serif;
+  font-size: 22px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.footer-subtext {
+  font-size: 13px;
+  color: #68736d;
+  margin: 4px 0 0;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.footer-copyright {
+  border-top: 1px dashed var(--line);
+  padding-top: 16px;
+  width: 100%;
+  max-width: 680px;
+  font-size: 12px;
+  color: #727e77;
+  line-height: 1.6;
+}
+
+.ownership-text {
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 4px;
+}
+
+
 
 

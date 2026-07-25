@@ -21,6 +21,9 @@ export default function Home() {
         <div className="hero-art" aria-hidden="true">
           <div className="sun-disc" />
           <div className="ramen-bowl">
+            <span className="steam-trail steam-1" />
+            <span className="steam-trail steam-2" />
+            <span className="steam-trail steam-3" />
             <span className="noodle noodle-one" />
             <span className="noodle noodle-two" />
             <span className="egg" />
