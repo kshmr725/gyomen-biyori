@@ -1,8 +1,7 @@
 -- ============================================================================
--- 魚麵日和 (GYOMEN BIYORI) — Data v2 Schema Migration
+-- 魚麵日和 (GYOMEN BIYORI) — Data v2 Refined Schema Migration
 -- Version: 20260726144500
--- Tables: 17 Required Core Domain Tables
--- Features: RLS Policies, Timestamps Triggers, Enums, Foreign Keys
+-- Tables: 17 Core Domain Tables with Precise Entity FKs & RLS Security
 -- ============================================================================
 
 -- 1. ENUMS
@@ -20,34 +19,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ----------------------------------------------------------------------------
--- 1. admin_profiles (管理者權限實體)
--- ----------------------------------------------------------------------------
+-- 1. admin_profiles (管理者權限與身分)
 CREATE TABLE admin_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT,
-  role TEXT NOT NULL DEFAULT 'editor',
+  role TEXT NOT NULL DEFAULT 'editor', -- admin, editor
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
 -- 2. sources (資料來源主表)
--- ----------------------------------------------------------------------------
 CREATE TABLE sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   category TEXT NOT NULL, -- official_web, google_maps, facebook, instagram, threads, ptt, dcard, editor_visit
-  trust_tier TEXT NOT NULL DEFAULT 'medium', -- tier1, tier2, tier3
+  trust_tier TEXT NOT NULL DEFAULT 'medium',
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 3. stores (拉麵店家/品牌主表)
--- ----------------------------------------------------------------------------
+-- 3. stores (拉麵品牌主表)
 CREATE TABLE stores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -63,9 +56,7 @@ CREATE TABLE stores (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 4. branches (分店實體)
--- ----------------------------------------------------------------------------
+-- 4. branches (分店實體 - 包含實際經緯度與地址)
 CREATE TABLE branches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
@@ -81,12 +72,11 @@ CREATE TABLE branches (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 5. opening_hours (營業時間實體)
--- ----------------------------------------------------------------------------
+-- 5. opening_hours (營業時間 - 關聯至 branch_id)
 CREATE TABLE opening_hours (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   open_time TIME NOT NULL,
   close_time TIME NOT NULL,
@@ -100,9 +90,7 @@ CREATE TABLE opening_hours (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 6. nearby_transit (周邊捷運與交通實體)
--- ----------------------------------------------------------------------------
+-- 6. nearby_transit (周邊捷運 - 關聯至 branch_id)
 CREATE TABLE nearby_transit (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -117,13 +105,12 @@ CREATE TABLE nearby_transit (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 7. menus (菜單主表)
--- ----------------------------------------------------------------------------
+-- 7. menus (菜單 - 關聯至 branch_id)
 CREATE TABLE menus (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-  title TEXT NOT NULL DEFAULT '主打菜單',
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '分店主打菜單',
   version TEXT,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
@@ -133,9 +120,7 @@ CREATE TABLE menus (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 8. dishes (單品餐點實體)
--- ----------------------------------------------------------------------------
+-- 8. dishes (單品餐點)
 CREATE TABLE dishes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   menu_id UUID NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
@@ -152,12 +137,12 @@ CREATE TABLE dishes (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 9. photos (照片資源表)
--- ----------------------------------------------------------------------------
+-- 9. photos (照片資源 - 多層級關聯 store / branch / dish)
 CREATE TABLE photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
+  branch_id UUID REFERENCES branches(id) ON DELETE CASCADE,
+  dish_id UUID REFERENCES dishes(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
   caption TEXT,
   category TEXT NOT NULL DEFAULT 'dish', -- cover, dish, storefront, menu
@@ -169,53 +154,44 @@ CREATE TABLE photos (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
 -- 10. tags (特色標籤表)
--- ----------------------------------------------------------------------------
 CREATE TABLE tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
-  category TEXT NOT NULL DEFAULT 'broth', -- broth, feature, service, scene
+  category TEXT NOT NULL DEFAULT 'broth',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
 -- 11. branch_tags (分店標籤關聯表)
--- ----------------------------------------------------------------------------
 CREATE TABLE branch_tags (
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
   PRIMARY KEY (branch_id, tag_id)
 );
 
--- ----------------------------------------------------------------------------
--- 12. payment_methods (支付方式定義表)
--- ----------------------------------------------------------------------------
+-- 12. payment_methods (支付方式定義)
 CREATE TABLE payment_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT NOT NULL UNIQUE, -- cash, credit_card, line_pay, jkopay, apple_pay
+  code TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   icon TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 13. branch_payment_methods (分店支付方式關聯表)
--- ----------------------------------------------------------------------------
+-- 13. branch_payment_methods (分店支付方式關聯)
 CREATE TABLE branch_payment_methods (
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   payment_method_id UUID NOT NULL REFERENCES payment_methods(id) ON DELETE CASCADE,
   PRIMARY KEY (branch_id, payment_method_id)
 );
 
--- ----------------------------------------------------------------------------
--- 14. queue_records (排隊預估紀錄表)
--- ----------------------------------------------------------------------------
+-- 14. queue_records (排隊估算紀錄 - 關聯至 branch_id)
 CREATE TABLE queue_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
   level queue_level_enum NOT NULL DEFAULT 'under30',
   peak_wait_minutes INTEGER NOT NULL DEFAULT 30,
   off_peak_wait_minutes INTEGER NOT NULL DEFAULT 10,
@@ -227,9 +203,7 @@ CREATE TABLE queue_records (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 15. editorial_entries (編輯短評與特色評分實體)
--- ----------------------------------------------------------------------------
+-- 15. editorial_entries (編輯短評與魚麵分)
 CREATE TABLE editorial_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
@@ -248,29 +222,28 @@ CREATE TABLE editorial_entries (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 16. source_links (資料來源連結明細表)
--- ----------------------------------------------------------------------------
+-- 16. source_links (資料來源連結明細 - 支援多動態實體)
 CREATE TABLE source_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL, -- store, branch, dish, photo, opening_hours
+  entity_id UUID NOT NULL,
   url TEXT NOT NULL,
   title TEXT,
   checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 17. update_logs (資料變更歷程日誌)
--- ----------------------------------------------------------------------------
+-- 17. update_logs (資料變更歷程 - 包含 before/after state 差異比對)
 CREATE TABLE update_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
   changed_by UUID REFERENCES admin_profiles(id) ON DELETE SET NULL,
+  entity_type TEXT NOT NULL, -- store, branch, dish, hours
+  entity_id UUID NOT NULL,
   change_type change_type_enum NOT NULL,
   summary TEXT NOT NULL,
-  details JSONB,
+  before_state JSONB,
+  after_state JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -307,24 +280,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Public READ Policies for Content Tables
-CREATE POLICY "Public stores select" ON stores FOR SELECT USING (true);
-CREATE POLICY "Public branches select" ON branches FOR SELECT USING (true);
-CREATE POLICY "Public opening_hours select" ON opening_hours FOR SELECT USING (true);
-CREATE POLICY "Public nearby_transit select" ON nearby_transit FOR SELECT USING (true);
-CREATE POLICY "Public menus select" ON menus FOR SELECT USING (true);
-CREATE POLICY "Public dishes select" ON dishes FOR SELECT USING (true);
-CREATE POLICY "Public photos select" ON photos FOR SELECT USING (true);
+-- Public READ Policies: Verified Content Only (Or Admin Can View All)
+CREATE POLICY "Filtered stores select" ON stores FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered branches select" ON branches FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered opening_hours select" ON opening_hours FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered nearby_transit select" ON nearby_transit FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered menus select" ON menus FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered dishes select" ON dishes FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered photos select" ON photos FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
 CREATE POLICY "Public tags select" ON tags FOR SELECT USING (true);
 CREATE POLICY "Public branch_tags select" ON branch_tags FOR SELECT USING (true);
 CREATE POLICY "Public payment_methods select" ON payment_methods FOR SELECT USING (true);
 CREATE POLICY "Public branch_payment_methods select" ON branch_payment_methods FOR SELECT USING (true);
-CREATE POLICY "Public queue_records select" ON queue_records FOR SELECT USING (true);
-CREATE POLICY "Public editorial_entries select" ON editorial_entries FOR SELECT USING (true);
+CREATE POLICY "Filtered queue_records select" ON queue_records FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered editorial_entries select" ON editorial_entries FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
 CREATE POLICY "Public sources select" ON sources FOR SELECT USING (true);
 CREATE POLICY "Public source_links select" ON source_links FOR SELECT USING (true);
 
--- Admin ALL (INSERT, UPDATE, DELETE) Policies
+-- Admin WRITE Policies (INSERT, UPDATE, DELETE)
 CREATE POLICY "Admin stores write" ON stores FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin branches write" ON branches FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin opening_hours write" ON opening_hours FOR ALL USING (is_admin(auth.uid()));
