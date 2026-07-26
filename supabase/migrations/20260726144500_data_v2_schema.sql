@@ -286,13 +286,24 @@ ALTER TABLE editorial_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE source_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE update_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper function: Is Admin User
+-- Helper function: Is Admin or Editor (content management)
 CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM admin_profiles
     WHERE id = user_id AND role IN ('admin', 'editor')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function: Is Strict Admin Only (admin_profiles & audit log management)
+CREATE OR REPLACE FUNCTION is_strict_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_profiles
+    WHERE id = user_id AND role = 'admin'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -330,13 +341,18 @@ CREATE POLICY "Admin queue_records write" ON queue_records FOR ALL USING (is_adm
 CREATE POLICY "Admin editorial_entries write" ON editorial_entries FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin sources write" ON sources FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin source_links write" ON source_links FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Admin update_logs write" ON update_logs FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin update_logs write" ON update_logs FOR ALL USING (is_strict_admin(auth.uid()));
 CREATE POLICY "Admin profiles select" ON admin_profiles FOR SELECT USING (auth.uid() = id OR is_admin(auth.uid()));
+CREATE POLICY "Admin profiles write" ON admin_profiles FOR INSERT WITH CHECK (is_strict_admin(auth.uid()));
+CREATE POLICY "Admin profiles update" ON admin_profiles FOR UPDATE USING (is_strict_admin(auth.uid()));
+CREATE POLICY "Admin profiles delete" ON admin_profiles FOR DELETE USING (is_strict_admin(auth.uid()));
 
 -- Role Privileges Grants for PostgREST & Supabase Roles
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
