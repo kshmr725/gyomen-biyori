@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AuthButton } from "@/components/auth-button";
 import { LoveModal } from "@/components/love-modal";
 import { BrandIcon } from "@/components/brand-icon";
+import { MobileNavIcon } from "@/components/mobile-nav-icon";
 import { useLanguage } from "@/lib/i18n";
 
 export function SiteHeader() {
@@ -52,19 +53,9 @@ export function SiteHeader() {
           <Link href="/profile" className={pathname === "/profile" ? "active" : ""}>{t.navProfile}</Link>
 
           <div className="lang-switcher">
-            <button
-              className={`lang-btn ${lang === "zh" ? "active" : ""}`}
-              onClick={() => setLang("zh")}
-            >
-              繁中
-            </button>
+            <button className={`lang-btn ${lang === "zh" ? "active" : ""}`} onClick={() => setLang("zh")}>繁中</button>
             <span className="lang-divider">/</span>
-            <button
-              className={`lang-btn ${lang === "en" ? "active" : ""}`}
-              onClick={() => setLang("en")}
-            >
-              EN
-            </button>
+            <button className={`lang-btn ${lang === "en" ? "active" : ""}`} onClick={() => setLang("en")}>EN</button>
           </div>
 
           <AuthButton />
@@ -72,19 +63,9 @@ export function SiteHeader() {
 
         <div className="mobile-header-actions">
           <div className="lang-switcher">
-            <button
-              className={`lang-btn ${lang === "zh" ? "active" : ""}`}
-              onClick={() => setLang("zh")}
-            >
-              繁中
-            </button>
+            <button className={`lang-btn ${lang === "zh" ? "active" : ""}`} onClick={() => setLang("zh")}>繁中</button>
             <span className="lang-divider">/</span>
-            <button
-              className={`lang-btn ${lang === "en" ? "active" : ""}`}
-              onClick={() => setLang("en")}
-            >
-              EN
-            </button>
+            <button className={`lang-btn ${lang === "en" ? "active" : ""}`} onClick={() => setLang("en")}>EN</button>
           </div>
           <AuthButton />
         </div>
@@ -92,15 +73,15 @@ export function SiteHeader() {
 
       <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
         <Link href="/choose" className={`mobile-nav-item ${pathname === "/choose" ? "active" : ""}`}>
-          <span className="mobile-nav-icon">🍜</span>
+          <span className="mobile-nav-icon"><MobileNavIcon type="choose" /></span>
           <span className="mobile-nav-label">{t.navChoose}</span>
         </Link>
         <Link href="/explore" className={`mobile-nav-item ${pathname === "/explore" ? "active" : ""}`}>
-          <span className="mobile-nav-icon">🗺️</span>
+          <span className="mobile-nav-icon"><MobileNavIcon type="explore" /></span>
           <span className="mobile-nav-label">{t.navExplore}</span>
         </Link>
         <Link href="/profile" className={`mobile-nav-item ${pathname === "/profile" ? "active" : ""}`}>
-          <span className="mobile-nav-icon">📝</span>
+          <span className="mobile-nav-icon"><MobileNavIcon type="profile" /></span>
           <span className="mobile-nav-label">{t.navProfile}</span>
         </Link>
       </nav>
