@@ -59,7 +59,8 @@ CREATE TABLE stores (
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT store_verified_consistency_check CHECK ((data_quality = 'verified' AND verification_status != 'pending') OR (data_quality = 'unverified'))
 );
 
 -- 4. branches (分店實體 - 包含經緯度與純電話)
@@ -77,7 +78,8 @@ CREATE TABLE branches (
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT branch_verified_consistency_check CHECK ((data_quality = 'verified' AND verification_status != 'pending') OR (data_quality = 'unverified'))
 );
 
 -- 5. opening_hours (營業時間 - 關聯至 branch_id，支援 is_24_hours)
@@ -148,7 +150,7 @@ CREATE TABLE dishes (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 9. photos (照片資源 - 多層級關聯 store / branch / dish)
+-- 9. photos (照片資源 - 多層級關聯 store / branch / dish，至少需具備一項關聯)
 CREATE TABLE photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
@@ -163,7 +165,8 @@ CREATE TABLE photos (
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT photos_target_entity_check CHECK (store_id IS NOT NULL OR branch_id IS NOT NULL OR dish_id IS NOT NULL)
 );
 
 -- 10. tags (標籤)
@@ -244,7 +247,8 @@ CREATE TABLE source_links (
   url TEXT NOT NULL,
   title TEXT,
   checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT source_links_entity_type_check CHECK (entity_type IN ('store', 'branch', 'dish', 'photo', 'opening_hours', 'menu'))
 );
 
 -- 17. update_logs (資料異動日誌)

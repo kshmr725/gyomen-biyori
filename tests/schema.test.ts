@@ -44,14 +44,23 @@ function runSchemaTests() {
   }
   console.log("✓ All 17 required core domain tables present in DDL");
 
-  // 3. Verify Foreign Keys (branch_id & menu_id)
+  // 3. Verify Foreign Keys & Constraints
   if (!sqlContent.includes("branch_id UUID NOT NULL REFERENCES branches(id)")) {
     throw new Error("FK check failed: opening_hours/menus/queue_records must reference branches(id)");
   }
   if (!sqlContent.includes("menu_id UUID NOT NULL REFERENCES menus(id)")) {
     throw new Error("FK check failed: dishes must reference menus(id)");
   }
-  console.log("✓ FK Relationships verified: opening_hours/menus/queue_records -> branches(id), dishes -> menus(id)");
+  if (!sqlContent.includes("CONSTRAINT photos_target_entity_check")) {
+    throw new Error("Constraint check failed: photos must have target entity check");
+  }
+  if (!sqlContent.includes("CONSTRAINT source_links_entity_type_check")) {
+    throw new Error("Constraint check failed: source_links must validate entity_type");
+  }
+  if (!sqlContent.includes("CONSTRAINT store_verified_consistency_check")) {
+    throw new Error("Constraint check failed: stores must check verified consistency");
+  }
+  console.log("✓ FK Relationships & DB constraints verified (photos entity check, source_links entity_type, verified consistency)");
 
   // 4. Verify RLS Policies Enabled
   for (const table of requiredTables) {
