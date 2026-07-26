@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { MapView } from "@/components/map-view";
 import { LocationSearch } from "@/components/location-search";
@@ -22,25 +22,24 @@ type RouteState = {
 export function RecommendationWizard() {
   const { t, lang } = useLanguage();
 
-  const [selected, setSelected] = useState<Coordinates | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [selected, setSelected] = useState<Coordinates | null>(null);
+  const [selectedLocationName, setSelectedLocationName] = useState<string>("");
+  const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
+
+  useEffect(() => {
     const saved = window.localStorage.getItem("gyomen:last-location");
-    if (!saved) return null;
+    if (!saved) return;
     try {
-      return JSON.parse(saved) as Coordinates;
+      const parsed = JSON.parse(saved) as Coordinates;
+      requestAnimationFrame(() => {
+        setSelected(parsed);
+        setCenter(parsed);
+        setSelectedLocationName(lang === "en" ? "Saved Location" : "上次選取地點");
+      });
     } catch {
-      return null;
+      window.localStorage.removeItem("gyomen:last-location");
     }
-  });
-
-  const [selectedLocationName, setSelectedLocationName] = useState<string>(() => {
-    if (selected) {
-      return lang === "en" ? "Saved Location" : "上次選取地點";
-    }
-    return "";
-  });
-
-  const [center, setCenter] = useState<Coordinates>(() => selected ?? TAIPEI_CENTER);
+  }, [lang]);
   const [step, setStep] = useState(0);
   const [travelMode, setTravelMode] = useState<TravelMode>("mrt");
   const [travelMinutes, setTravelMinutes] = useState(20);
