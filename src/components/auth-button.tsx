@@ -28,12 +28,19 @@ export function AuthButton() {
   return (
     <button
       className="nav-button"
-      onClick={() =>
+      onClick={() => {
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const next =
+          requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+            ? requestedNext
+            : "/profile";
         getSupabaseBrowserClient().auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo: `${window.location.origin}/profile` },
-        })
-      }
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          },
+        });
+      }}
     >
       {t.loginGoogle}
     </button>

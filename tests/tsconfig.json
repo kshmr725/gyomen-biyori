@@ -7,9 +7,25 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "types": ["node"],
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "rootDir": "..",
     "outDir": "../.test-dist"
   },
-  "include": ["recommendation.test.ts", "../src/lib/types.ts", "../src/lib/hours.ts", "../src/lib/recommendation.ts", "../src/lib/seed.ts"]
+  "include": [
+    "recommendation.test.ts",
+    "schema.test.ts",
+    "integration.test.ts",
+    "next-test-server.ts",
+    "../src/lib/types.ts",
+    "../src/lib/hours.ts",
+    "../src/lib/recommendation.ts",
+    "../src/lib/seed.ts",
+    "../src/lib/seed-v2.ts",
+    "../src/lib/importer/seed-importer.ts",
+    "../src/lib/types/database.ts"
+  ]
 }
-
