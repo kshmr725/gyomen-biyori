@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useLanguage } from "@/lib/i18n";
 
 export function AuthButton() {
@@ -10,16 +10,22 @@ export function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
     const supabase = getSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUser(data.user)).catch(() => {});
     const { data } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
     return () => data.subscription.unsubscribe();
   }, []);
 
   if (user) {
     return (
-      <button className="nav-button" onClick={() => getSupabaseBrowserClient().auth.signOut()}>
+      <button
+        className="nav-button"
+        onClick={() => {
+          const supabase = getSupabaseBrowserClient();
+          supabase?.auth.signOut().catch(() => {});
+        }}
+      >
         {t.logout}
       </button>
     );
@@ -28,12 +34,15 @@ export function AuthButton() {
   return (
     <button
       className="nav-button"
-      onClick={() =>
-        getSupabaseBrowserClient().auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo: `${window.location.origin}/profile` },
-        })
-      }
+      onClick={() => {
+        const supabase = getSupabaseBrowserClient();
+        if (supabase) {
+          supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: `${window.location.origin}/profile` },
+          }).catch(() => {});
+        }
+      }}
     >
       {t.loginGoogle}
     </button>

@@ -1,7 +1,15 @@
 import { isOpenAt } from "./hours";
 import type { Shop, WeeklyHours } from "./types";
 
-const daily = (ranges: Array<{ open: string; close: string }>): WeeklyHours => ({ 0: ranges, 1: ranges, 2: ranges, 3: ranges, 4: ranges, 5: ranges, 6: ranges });
+const daily = (ranges: Array<{ open: string; close: string }>): WeeklyHours => ({
+  0: ranges,
+  1: ranges,
+  2: ranges,
+  3: ranges,
+  4: ranges,
+  5: ranges,
+  6: ranges,
+});
 
 const records: Omit<Shop, "openNow">[] = [
   {
@@ -23,7 +31,7 @@ const records: Omit<Shop, "openNow">[] = [
     photos: [
       "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80"
+      "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80",
     ],
     menuItems: [
       {
@@ -33,7 +41,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "採用大量雞骨慢火熬煮的濃郁雞白湯，搭配低溫舒肥雞胸肉與舒肥豬叉燒。",
         photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
         tags: ["濃郁雞白湯", "招牌人氣", "舒肥雞肉"],
-        isSignature: true
+        isSignature: true,
       },
       {
         id: "ck-m2",
@@ -42,7 +50,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "清爽鹽味湯頭加入日本高知縣柚子果汁，清香解膩，清流系的首選。",
         photo: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80",
         tags: ["清爽鹽味", "清香柚子", "女生成尚愛"],
-        isSignature: false
+        isSignature: false,
       },
       {
         id: "ck-m3",
@@ -51,17 +59,17 @@ const records: Omit<Shop, "openNow">[] = [
         description: "太麵粗麵彈牙十足，沾醬融合雞白湯與柴魚鰹節香氣，濃郁濃厚。",
         photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
         tags: ["魚介沾麵", "太麵粗麵", "重口味"],
-        isSignature: true
-      }
+        isSignature: true,
+      },
     ],
     mrtInfo: { station: "忠孝新生站", walkMinutes: 3 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.5, noodles: 4.2, toppings: 4.3, completeness: 4.5 },
     editorialStatus: "reviewed",
+    dataQuality: "verified",
     dataSources: [
-      { title: "麵屋千雲 官方 Facebook 粉專", url: "https://www.facebook.com/chikumoramen/" },
-      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+光華店" },
-      { title: "Uber Eats 線上菜單頁面", url: "https://www.ubereats.com/tw/store/%E9%BA%B5%E5%B1%8B%E5%8D%83%E9%9B%B2-%E5%85%89%E8%8F%AF%E5%BA%97/t2Vq5V_ITN-p_iH64M2lHQ" }
+      { label: "麵屋千雲 官方 Facebook 粉專", url: "https://www.facebook.com/chikumoramen/", checkedAt: "2026-07-25" },
+      { label: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+光華店", checkedAt: "2026-07-25" },
     ],
     verifiedAt: "2026-07-25",
   },
@@ -84,7 +92,6 @@ const records: Omit<Shop, "openNow">[] = [
     photos: [
       "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=1000&q=80"
     ],
     menuItems: [
       {
@@ -94,7 +101,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "金黃色的濃郁雞湯底，深夜暖胃的最佳夥伴。",
         photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
         tags: ["宵夜必吃", "雞白湯", "深夜4點"],
-        isSignature: true
+        isSignature: true,
       },
       {
         id: "ckl-m2",
@@ -103,17 +110,17 @@ const records: Omit<Shop, "openNow">[] = [
         description: "切丁叉燒肉經過高溫炙燒出焦香，淋上日式美乃滋與蔥花。",
         photo: "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=800&q=80",
         tags: ["炙燒叉燒飯", "超人氣副食", "香氣爆棚"],
-        isSignature: true
-      }
+        isSignature: true,
+      },
     ],
     mrtInfo: { station: "中山站", walkMinutes: 6 },
     queue: { weekdayLunch: "under30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.3, noodles: 4.0, toppings: 4.2, completeness: 4.2 },
     editorialStatus: "reviewed",
+    dataQuality: "verified",
     dataSources: [
-      { title: "麵屋千雲 林森店 官方 Facebook", url: "https://www.facebook.com/chikumoramen/" },
-      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+林森店" },
-      { title: "Foodpanda 線上外送菜單頁面", url: "https://www.foodpanda.com.tw/restaurant/z4px/mian-wu-qian-yun-lin-sen-dian" }
+      { label: "麵屋千雲 林森店 官方 Facebook", url: "https://www.facebook.com/chikumoramen/", checkedAt: "2026-07-25" },
+      { label: "Google 地圖地標與評論", url: "https://maps.google.com/?q=麵屋千雲+林森店", checkedAt: "2026-07-25" },
     ],
     verifiedAt: "2026-07-25",
   },
@@ -135,7 +142,6 @@ const records: Omit<Shop, "openNow">[] = [
     coverImage: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80"
     ],
     menuItems: [
       {
@@ -145,7 +151,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "自家製中粗捲麵吸附濃郁豚骨醬油湯頭，大份量叉燒與糖心蛋超滿足。",
         photo: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=800&q=80",
         tags: ["東京豚骨", "大碗同價", "經典池袋"],
-        isSignature: true
+        isSignature: true,
       },
       {
         id: "tc-m2",
@@ -154,17 +160,17 @@ const records: Omit<Shop, "openNow">[] = [
         description: "特製麻辣油融合成厚實辛辣湯頭，微辣帶勁，重口味狂熱者最愛。",
         photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
         tags: ["香辣濃郁", "辛麻口感", "豚骨醬油"],
-        isSignature: false
-      }
+        isSignature: false,
+      },
     ],
     mrtInfo: { station: "台北車站", walkMinutes: 2 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "under30", offPeak: "none" },
     adminScores: { soup: 4.1, noodles: 4.3, toppings: 4.4, completeness: 4.2 },
     editorialStatus: "reviewed",
+    dataQuality: "verified",
     dataSources: [
-      { title: "屯京拉麵 台灣官方門市網站", url: "https://www.foodexgroup.com.tw/brand.php?id=1" },
-      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=屯京拉麵+台北站前店" },
-      { title: "Uber Eats 線上菜單頁面", url: "https://www.ubereats.com/tw/store/%E5%B1%AF%E4%BA%AC%E6%8B%89%E9%BA%B5-%E5%8F%B0%E5%8C%97%E7%AB%99%E5%89%8D%E5%BA%97/zG6C5hS_THuhM-m3yM9xbg" }
+      { label: "屯京拉麵 台灣官方門市網站", url: "https://www.foodexgroup.com.tw/brand.php?id=1", checkedAt: "2026-07-25" },
+      { label: "Google 地圖地標與評論", url: "https://maps.google.com/?q=屯京拉麵+台北站前店", checkedAt: "2026-07-25" },
     ],
     verifiedAt: "2026-07-25",
   },
@@ -186,7 +192,6 @@ const records: Omit<Shop, "openNow">[] = [
     coverImage: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=1000&q=80"
     ],
     menuItems: [
       {
@@ -196,7 +201,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "去腥熬煮的天然博多豚骨湯頭，搭配專屬特製極細麵與秘傳赤紅辣醬。",
         photo: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80",
         tags: ["博多極細麵", "赤紅秘傳醬", "味集中隔間"],
-        isSignature: true
+        isSignature: true,
       },
       {
         id: "ir-m2",
@@ -205,19 +210,19 @@ const records: Omit<Shop, "openNow">[] = [
         description: "麵條剛好的硬度與彈性，在剩餘湯頭中加入剛煮好的熱騰騰細麵。",
         photo: "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=800&q=80",
         tags: ["替玉必點", "麵條硬度可選"],
-        isSignature: false
-      }
+        isSignature: false,
+      },
     ],
     mrtInfo: { station: "象山站", walkMinutes: 5 },
     queue: { weekdayLunch: "over30", weekdayDinner: "over30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "under30" },
     adminScores: { soup: 4.2, noodles: 4.2, toppings: 3.8, completeness: 4.1 },
     editorialStatus: "reviewed",
+    dataQuality: "verified",
     dataSources: [
-      { title: "一蘭拉麵 台灣台北本店官方網站", url: "https://zh-cht.ichiran.com/shop/taiwan/taipei-honten/" },
-      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=一蘭拉麵+台灣台北本店" },
-      { title: "OpenStreetMap 地理節點紀錄", url: "https://www.openstreetmap.org/node/5307044026" }
+      { label: "Google 地圖地標與評論", url: "https://maps.google.com/?q=一蘭拉麵+台灣台北本店", checkedAt: "2026-07-26" },
+      { label: "OpenStreetMap 地理節點紀錄", url: "https://www.openstreetmap.org/node/5307044026", checkedAt: "2026-07-26" },
     ],
-    verifiedAt: "2026-07-25",
+    verifiedAt: "2026-07-26",
   },
   {
     id: "douraku-shop",
@@ -233,11 +238,10 @@ const records: Omit<Shop, "openNow">[] = [
     openingHours: daily([{ open: "12:00", close: "14:00" }, { open: "17:00", close: "21:00" }]),
     hoursSummary: "每日 12:00–14:00、17:00–21:00",
     recommendationReady: true,
-    description: "西門町昭和懷舊氛圍，以平價濃郁豚骨、雞白湯與免費替玉無限續麵深受好評。",
+    description: "西門町昭和懷舊氛圍，以平價濃泛豚骨、雞白湯與免費替玉無限續麵深受好評。",
     coverImage: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
     photos: [
       "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=1000&q=80"
     ],
     menuItems: [
       {
@@ -247,7 +251,7 @@ const records: Omit<Shop, "openNow">[] = [
         description: "濃郁白湯豚骨，搭配木耳絲與炙燒叉燒，高 CP 值首選，內用可免費免費加麵。",
         photo: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80",
         tags: ["平價人氣", "免費加麵", "昭和氛圍"],
-        isSignature: true
+        isSignature: true,
       },
       {
         id: "dr-m2",
@@ -256,17 +260,17 @@ const records: Omit<Shop, "openNow">[] = [
         description: "香濃焦香黑蒜油，風味層次豐富，蒜香味強烈超誘人。",
         photo: "https://images.unsplash.com/photo-1623341214825-9f4f963727da?auto=format&fit=crop&w=800&q=80",
         tags: ["黑蒜油", "重蒜香", "濃郁系"],
-        isSignature: false
-      }
+        isSignature: false,
+      },
     ],
     mrtInfo: { station: "西門站", walkMinutes: 4 },
     queue: { weekdayLunch: "under30", weekdayDinner: "under30", holidayLunch: "over30", holidayDinner: "over30", offPeak: "none" },
     adminScores: { soup: 4.0, noodles: 4.1, toppings: 4.0, completeness: 4.1 },
     editorialStatus: "reviewed",
+    dataQuality: "verified",
     dataSources: [
-      { title: "道樂拉麵 官方 Facebook 粉專", url: "https://www.facebook.com/doraku.ramen/" },
-      { title: "Google 地圖地標與評論", url: "https://maps.google.com/?q=道樂商店" },
-      { title: "MENU 美食誌 店家食記分享", url: "https://menutaiwan.com/search?q=%E9%81%93%E6%A8%82%E5%95%86%E5%BA%97" }
+      { label: "道樂拉麵 官方 Facebook 粉專", url: "https://www.facebook.com/doraku.ramen/", checkedAt: "2026-07-25" },
+      { label: "Google 地圖地標與評論", url: "https://maps.google.com/?q=道樂商店", checkedAt: "2026-07-25" },
     ],
     verifiedAt: "2026-07-25",
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Language = "zh" | "en";
 
@@ -218,13 +218,14 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("gyomen:lang") as Language;
-      if (saved === "zh" || saved === "en") return saved;
+  const [lang, setLangState] = useState<Language>("zh");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("gyomen:lang") as Language;
+    if (saved === "zh" || saved === "en") {
+      requestAnimationFrame(() => setLangState(saved));
     }
-    return "zh";
-  });
+  }, []);
 
   function setLang(newLang: Language) {
     setLangState(newLang);

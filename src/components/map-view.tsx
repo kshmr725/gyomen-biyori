@@ -22,22 +22,18 @@ export function MapView({
   selectedShopId,
   onSelect,
   onShopSelect,
-  height = 500,
+  height = 360,
 }: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const markerMapRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
   const onSelectRef = useRef(onSelect);
   const onShopSelectRef = useRef(onShopSelect);
   const initialCenterRef = useRef(center);
 
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
-
-  useEffect(() => {
-    onShopSelectRef.current = onShopSelect;
-  }, [onShopSelect]);
+  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
+  useEffect(() => { onShopSelectRef.current = onShopSelect; }, [onShopSelect]);
 
   const matchingSet = useMemo(() => {
     if (!matchingShopIds) return null;
@@ -56,35 +52,28 @@ export function MapView({
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const map = L.map(elementRef.current, {
         zoomControl: false,
-        attributionControl: false,
+        attributionControl: true,
         zoomAnimation: !reducedMotion,
         fadeAnimation: false,
         markerZoomAnimation: false,
         inertia: true,
-        inertiaDeceleration: 3200,
-        inertiaMaxSpeed: 1100,
-        easeLinearity: 0.25,
-        wheelDebounceTime: 80,
-        wheelPxPerZoomLevel: 100,
         zoomSnap: 0.5,
         zoomDelta: 0.5,
+        wheelPxPerZoomLevel: 120,
       }).setView([initialCenterRef.current.lat, initialCenterRef.current.lng], 14);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 19,
-          updateWhenZooming: false,
-          updateWhenIdle: true,
-          keepBuffer: 2,
-          detectRetina: false,
-        }
-      ).addTo(map);
+      // Clean, low-noise CARTO Positron minimal light tiles
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd",
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 2,
+        detectRetina: true,
+      }).addTo(map);
 
       map.on("click", (event: { latlng: { lat: number; lng: number } }) => {
         onSelectRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng });
@@ -92,41 +81,27 @@ export function MapView({
 
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
-
-      resizeObserver = new ResizeObserver(() => {
-        window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
-      });
+      resizeObserver = new ResizeObserver(() => window.requestAnimationFrame(() => map.invalidateSize({ pan: false })));
       resizeObserver.observe(elementRef.current);
     }
 
+    const markerMap = markerMapRef.current;
     setup();
-
     return () => {
       active = false;
       resizeObserver?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
+      markerMap.clear();
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const target = { lat: center.lat, lng: center.lng };
-    const current = map.getCenter();
-    const movedEnough = Math.abs(current.lat - target.lat) + Math.abs(current.lng - target.lng) > 0.00008;
-
-    if (!movedEnough) return;
-
-    map.panTo([target.lat, target.lng], {
-      animate: !reducedMotion,
-      duration: reducedMotion ? 0 : 0.28,
-      easeLinearity: 0.3,
-      noMoveStart: true,
-    });
+    map.panTo([center.lat, center.lng], { animate: !reducedMotion, duration: reducedMotion ? 0 : 0.28 });
   }, [center.lat, center.lng]);
 
   useEffect(() => {
@@ -136,79 +111,74 @@ export function MapView({
       if (!mapRef.current || !layerRef.current) return;
       const L = await import("leaflet");
       if (cancelled || !layerRef.current) return;
-
       layerRef.current.clearLayers();
+      markerMapRef.current.clear();
 
+      // User location marker
       if (selected) {
         const originIcon = L.divIcon({
-          className: "custom-map-icon origin-icon",
-          html: `<div class="origin-pin-pulse"></div><div class="origin-pin-badge">📍 出發點</div>`,
-          iconSize: [80, 40],
-          iconAnchor: [40, 36],
+          className: "custom-map-icon user-origin-marker",
+          html: '<div class="user-origin-dot"><div class="user-origin-pulse"></div></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         });
         L.marker([selected.lat, selected.lng], { icon: originIcon, keyboard: false }).addTo(layerRef.current);
       }
 
+      // Shop markers
       for (const shop of shops) {
         const isSelected = selectedShopId === shop.id;
         const isMatching = matchingSet ? matchingSet.has(shop.id) : true;
-        const statusClass = isSelected ? "is-selected" : isMatching ? "is-matching" : "is-muted";
-
-        const shopIcon = L.divIcon({
-          className: `custom-map-icon shop-icon ${statusClass}`,
-          html: `
-            <div class="shop-pin-wrapper">
-              <div class="shop-pin-badge">
-                <span class="ramen-icon">🍜</span>
-                <span class="shop-pin-name">${shop.name}</span>
-                <span class="shop-pin-price">NT$${shop.basePrice}</span>
-              </div>
-              ${isSelected ? '<div class="shop-pin-pulse"></div>' : ""}
-            </div>
-          `,
-          iconSize: [140, 40],
-          iconAnchor: [70, 36],
+        const markerIcon = L.divIcon({
+          className: `custom-map-icon minimalist-shop-marker ${isSelected ? "is-selected" : ""} ${isMatching ? "is-matching" : "is-muted"}`,
+          html: `<button aria-label="${shop.name}" class="minimalist-marker-dot"><span class="marker-inner-circle"></span></button>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
 
-        const marker = L.marker([shop.lat, shop.lng], {
-          icon: shopIcon,
-          riseOnHover: true,
-          keyboard: true,
-        });
-
-        const popupContent = `
-          <div class="map-popup-card">
-            <img src="${shop.coverImage}" alt="${shop.name}" class="map-popup-img" loading="lazy" decoding="async" />
-            <div class="map-popup-body">
-              <div class="map-popup-brand">${shop.brand}</div>
+        const marker = L.marker([shop.lat, shop.lng], { icon: markerIcon, riseOnHover: true, keyboard: true });
+        marker.bindTooltip(shop.name, { direction: "top", offset: [0, -12], className: "clean-map-tooltip" });
+        
+        const mrtWalkText = shop.mrtInfo ? ` · 捷運步行 ${shop.mrtInfo.walkMinutes} 分` : "";
+        marker.bindPopup(
+          `
+          <div class="map-popup-card clean-popup-card">
+            <div class="map-popup-header">
+              <span className="map-popup-brand">${shop.brand} (${shop.area})</span>
               <h4 class="map-popup-title">${shop.name}</h4>
-              <p class="map-popup-desc">${shop.description}</p>
-              <div class="map-popup-meta">
-                <span>⭐ ${shop.googleRating}</span>
-                <span>NT$${shop.basePrice}起</span>
-                <span class="${shop.openNow ? "open-text" : "closed-text"}">${shop.openNow ? "營業中" : "未營業"}</span>
-              </div>
-              <a href="/shops/${shop.slug}" class="map-popup-link">查看店家細節與菜單 →</a>
             </div>
+            <p class="map-popup-meta">🚶 步行時間計算中${mrtWalkText}</p>
+            <a href="/shops/${shop.slug}" class="map-popup-link">查看店家資訊 →</a>
           </div>
-        `;
+          `,
+          { maxWidth: 240, autoPan: true, autoPanPadding: [20, 20], keepInView: true }
+        );
 
-        marker.bindPopup(popupContent, {
-          maxWidth: 260,
-          autoPan: true,
-          autoPanPadding: [24, 24],
-          keepInView: true,
+        marker.on("click", () => {
+          onShopSelectRef.current?.(shop);
+          if (mapRef.current) {
+            mapRef.current.panTo([shop.lat, shop.lng], { animate: true });
+          }
         });
-        marker.on("click", () => onShopSelectRef.current?.(shop));
+
         marker.addTo(layerRef.current);
+        markerMapRef.current.set(shop.id, marker);
       }
     }
 
     redraw();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [selected, shops, matchingSet, selectedShopId]);
 
-  return <div ref={elementRef} className="map-frame" style={{ height }} aria-label="台北拉麵動態地圖" />;
+  // Synchronize active shop selection -> open popup & pan to marker
+  useEffect(() => {
+    if (!selectedShopId || !markerMapRef.current.has(selectedShopId)) return;
+    const marker = markerMapRef.current.get(selectedShopId);
+    if (marker && mapRef.current) {
+      marker.openPopup();
+      mapRef.current.panTo(marker.getLatLng(), { animate: true });
+    }
+  }, [selectedShopId]);
+
+  return <div ref={elementRef} className="map-frame clean-map-frame" style={{ height }} aria-label="台北拉麵動態地圖" />;
 }

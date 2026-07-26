@@ -26,6 +26,10 @@ export function ProfilePanel() {
   const loadUserData = useCallback(async (userId: string) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     try {
       const [favRes, visRes] = await Promise.all([
         supabase.from("favorites").select("*").eq("user_id", userId),
@@ -42,19 +46,20 @@ export function ProfilePanel() {
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      requestAnimationFrame(() => setLoading(false));
       return;
     }
 
-    const supabase = getSupabaseBrowserClient();
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
+      setUser(data?.user ?? null);
+      if (data?.user) {
         loadUserData(data.user.id);
       } else {
         setLoading(false);
       }
-    });
+    }).catch(() => setLoading(false));
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -67,14 +72,15 @@ export function ProfilePanel() {
       }
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => data?.subscription?.unsubscribe();
   }, [loadUserData]);
 
   async function handleAddVisit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSubmitting(true);
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setSubmitting(true);
     try {
       const newVisit = {
         user_id: user.id,
@@ -98,6 +104,7 @@ export function ProfilePanel() {
   async function removeFavorite(shopId: string) {
     if (!user) return;
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
     try {
       await supabase.from("favorites").delete().eq("user_id", user.id).eq("shop_id", shopId);
       setFavorites((prev) => prev.filter((f) => f.shop_id !== shopId));
@@ -127,7 +134,7 @@ export function ProfilePanel() {
         <button
           className="button button-primary"
           onClick={() =>
-            getSupabaseBrowserClient().auth.signInWithOAuth({
+            getSupabaseBrowserClient()?.auth.signInWithOAuth({
               provider: "google",
               options: { redirectTo: `${window.location.origin}/profile` },
             })
@@ -154,7 +161,7 @@ export function ProfilePanel() {
         <button
           className="button button-ghost"
           style={{ marginTop: "14px" }}
-          onClick={() => getSupabaseBrowserClient().auth.signOut()}
+          onClick={() => getSupabaseBrowserClient()?.auth.signOut()}
         >
           {t.logout}
         </button>

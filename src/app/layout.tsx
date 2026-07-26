@@ -4,6 +4,7 @@ import "./globals.css";
 import "./performance.css";
 import "./location-flow.css";
 import "./cis.css";
+import "./ux-v3.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LanguageProvider } from "@/lib/i18n";
