@@ -2369,6 +2369,124 @@ select {
   }
 }
 
+/* UX v3 Filter Centering & Minimalist Map Styling */
+.ux-v3-shell.is-filtering {
+  display: block;
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.step-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.step-back-btn:hover {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.step-counter-pill {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-heading);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+.choice-buttons.ux-v3-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.minimalist-shop-marker .minimalist-marker-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #9B2C2C;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(155, 44, 44, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.minimalist-shop-marker.is-selected .minimalist-marker-dot {
+  width: 34px;
+  height: 34px;
+  background: #D35400;
+  border-color: #ffffff;
+  box-shadow: 0 6px 18px rgba(211, 84, 0, 0.5), 0 0 0 4px rgba(211, 84, 0, 0.2);
+  transform: scale(1.15);
+}
+
+.minimalist-shop-marker .marker-inner-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.user-origin-marker .user-origin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #27AE60;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.4);
+  position: relative;
+}
+
+.user-origin-marker .user-origin-pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: rgba(39, 174, 96, 0.3);
+  animation: user-pulse 2s infinite ease-out;
+}
+
+@keyframes user-pulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .ux-v3-shell.has-results {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .ux-v3-shell.has-results .ux-v3-panel {
+    order: 1;
+  }
+
+  .ux-v3-shell.has-results .ux-v3-map-column {
+    order: 2;
+  }
+}
+
+
 
 
 

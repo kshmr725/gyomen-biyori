@@ -154,7 +154,7 @@ export default async function ShopPage({ params }: { params: Promise<{ slug: str
           <div className="source-chips-grid">
             {shop.dataSources.map((source, index) => {
               const isObj = typeof source === "object" && source !== null;
-              const title = isObj ? source.title : source;
+              const title = isObj ? (source.label || (source as { title?: string }).title || "官方資料來源") : source;
               const url = isObj ? source.url : `https://www.google.com/search?q=${encodeURIComponent(shop.name + " " + source)}`;
               return (
                 <a

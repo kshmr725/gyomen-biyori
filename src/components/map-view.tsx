@@ -14,10 +14,20 @@ type Props = {
   height?: number;
 };
 
-export function MapView({ center, selected, shops = [], matchingShopIds, selectedShopId, onSelect, onShopSelect, height = 500 }: Props) {
+export function MapView({
+  center,
+  selected,
+  shops = [],
+  matchingShopIds,
+  selectedShopId,
+  onSelect,
+  onShopSelect,
+  height = 360,
+}: Props) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const markerMapRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
   const onSelectRef = useRef(onSelect);
   const onShopSelectRef = useRef(onShopSelect);
   const initialCenterRef = useRef(center);
@@ -42,7 +52,7 @@ export function MapView({ center, selected, shops = [], matchingShopIds, selecte
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const map = L.map(elementRef.current, {
         zoomControl: false,
-        attributionControl: false,
+        attributionControl: true,
         zoomAnimation: !reducedMotion,
         fadeAnimation: false,
         markerZoomAnimation: false,
@@ -53,19 +63,16 @@ export function MapView({ center, selected, shops = [], matchingShopIds, selecte
       }).setView([initialCenterRef.current.lat, initialCenterRef.current.lng], 14);
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+
+      // Clean, low-noise CARTO Positron minimal light tiles
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
         subdomains: "abcd",
         maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         updateWhenZooming: false,
         updateWhenIdle: true,
         keepBuffer: 2,
         detectRetina: true,
-      }).addTo(map);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
-        subdomains: "abcd",
-        maxZoom: 19,
-        pane: "shadowPane",
-        opacity: 0.58,
       }).addTo(map);
 
       map.on("click", (event: { latlng: { lat: number; lng: number } }) => {
@@ -78,6 +85,7 @@ export function MapView({ center, selected, shops = [], matchingShopIds, selecte
       resizeObserver.observe(elementRef.current);
     }
 
+    const markerMap = markerMapRef.current;
     setup();
     return () => {
       active = false;
@@ -85,6 +93,7 @@ export function MapView({ center, selected, shops = [], matchingShopIds, selecte
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
+      markerMap.clear();
     };
   }, []);
 
@@ -103,48 +112,73 @@ export function MapView({ center, selected, shops = [], matchingShopIds, selecte
       const L = await import("leaflet");
       if (cancelled || !layerRef.current) return;
       layerRef.current.clearLayers();
+      markerMapRef.current.clear();
 
+      // User location marker
       if (selected) {
         const originIcon = L.divIcon({
-          className: "custom-map-icon origin-icon-clean",
-          html: '<div class="origin-dot"><span></span></div>',
-          iconSize: [30, 30],
-          iconAnchor: [15, 15],
+          className: "custom-map-icon user-origin-marker",
+          html: '<div class="user-origin-dot"><div class="user-origin-pulse"></div></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         });
         L.marker([selected.lat, selected.lng], { icon: originIcon, keyboard: false }).addTo(layerRef.current);
       }
 
+      // Shop markers
       for (const shop of shops) {
         const isSelected = selectedShopId === shop.id;
         const isMatching = matchingSet ? matchingSet.has(shop.id) : true;
         const markerIcon = L.divIcon({
-          className: `custom-map-icon clean-shop-marker ${isSelected ? "is-selected" : ""} ${isMatching ? "is-matching" : "is-muted"}`,
-          html: `<button aria-label="${shop.name}" class="clean-marker-core"><span class="clean-marker-bowl">◡</span></button>`,
-          iconSize: [36, 42],
-          iconAnchor: [18, 38],
+          className: `custom-map-icon minimalist-shop-marker ${isSelected ? "is-selected" : ""} ${isMatching ? "is-matching" : "is-muted"}`,
+          html: `<button aria-label="${shop.name}" class="minimalist-marker-dot"><span class="marker-inner-circle"></span></button>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
 
         const marker = L.marker([shop.lat, shop.lng], { icon: markerIcon, riseOnHover: true, keyboard: true });
-        marker.bindTooltip(shop.name, { direction: "top", offset: [0, -18], className: "clean-map-tooltip" });
-        marker.bindPopup(`
+        marker.bindTooltip(shop.name, { direction: "top", offset: [0, -12], className: "clean-map-tooltip" });
+        
+        const mrtWalkText = shop.mrtInfo ? ` · 捷運步行 ${shop.mrtInfo.walkMinutes} 分` : "";
+        marker.bindPopup(
+          `
           <div class="map-popup-card clean-popup-card">
-            <img src="${shop.coverImage}" alt="${shop.name}" class="map-popup-img" loading="lazy" decoding="async" />
-            <div class="map-popup-body">
-              <div class="map-popup-brand">${shop.area}</div>
+            <div class="map-popup-header">
+              <span className="map-popup-brand">${shop.brand} (${shop.area})</span>
               <h4 class="map-popup-title">${shop.name}</h4>
-              <div class="map-popup-meta"><span>★ ${shop.googleRating}</span><span>NT$${shop.basePrice} 起</span></div>
-              <a href="/shops/${shop.slug}" class="map-popup-link">查看店家 →</a>
             </div>
+            <p class="map-popup-meta">🚶 步行時間計算中${mrtWalkText}</p>
+            <a href="/shops/${shop.slug}" class="map-popup-link">查看店家資訊 →</a>
           </div>
-        `, { maxWidth: 260, autoPan: true, autoPanPadding: [24, 24], keepInView: true });
-        marker.on("click", () => onShopSelectRef.current?.(shop));
+          `,
+          { maxWidth: 240, autoPan: true, autoPanPadding: [20, 20], keepInView: true }
+        );
+
+        marker.on("click", () => {
+          onShopSelectRef.current?.(shop);
+          if (mapRef.current) {
+            mapRef.current.panTo([shop.lat, shop.lng], { animate: true });
+          }
+        });
+
         marker.addTo(layerRef.current);
+        markerMapRef.current.set(shop.id, marker);
       }
     }
 
     redraw();
     return () => { cancelled = true; };
   }, [selected, shops, matchingSet, selectedShopId]);
+
+  // Synchronize active shop selection -> open popup & pan to marker
+  useEffect(() => {
+    if (!selectedShopId || !markerMapRef.current.has(selectedShopId)) return;
+    const marker = markerMapRef.current.get(selectedShopId);
+    if (marker && mapRef.current) {
+      marker.openPopup();
+      mapRef.current.panTo(marker.getLatLng(), { animate: true });
+    }
+  }, [selectedShopId]);
 
   return <div ref={elementRef} className="map-frame clean-map-frame" style={{ height }} aria-label="台北拉麵動態地圖" />;
 }

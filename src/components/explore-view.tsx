@@ -97,7 +97,7 @@ export function ExploreView() {
       });
 
     return () => controller.abort();
-  }, [center.lat, center.lng, hasConfirmedLocation, lang, selectedLocationName]);
+  }, [center, hasConfirmedLocation, lang, selectedLocationName]);
 
   const sorted = useMemo(() => {
     return [...shops].sort((a, b) => {
