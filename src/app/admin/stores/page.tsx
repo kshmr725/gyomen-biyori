@@ -16,16 +16,6 @@ export default function AdminStoreListPage() {
     });
   }, []);
 
-  async function handleToggleQuality(storeId: string, current: "verified" | "unverified") {
-    const next = current === "verified" ? "unverified" : "verified";
-    const ok = await DataService.updateStoreQuality(storeId, next);
-    if (ok) {
-      setStores((prev) =>
-        prev.map((s) => (s.id === storeId ? { ...s, data_quality: next, checked_at: next === "verified" ? new Date().toISOString() : null } : s))
-      );
-    }
-  }
-
   return (
     <div className="admin-stores-list">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
@@ -55,7 +45,6 @@ export default function AdminStoreListPage() {
                 <th style={{ padding: "12px 16px" }}>基本價格</th>
                 <th style={{ padding: "12px 16px" }}>查證品質 (Data Quality)</th>
                 <th style={{ padding: "12px 16px" }}>最後校對時間</th>
-                <th style={{ padding: "12px 16px" }}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -86,15 +75,6 @@ export default function AdminStoreListPage() {
                   </td>
                   <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
                     {store.checked_at ? new Date(store.checked_at).toLocaleDateString() : "未核對"}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <button
-                      className="button button-ghost"
-                      style={{ fontSize: "0.8rem", padding: "4px 8px" }}
-                      onClick={() => handleToggleQuality(store.id, store.data_quality)}
-                    >
-                      切換驗證狀態
-                    </button>
                   </td>
                 </tr>
               ))}

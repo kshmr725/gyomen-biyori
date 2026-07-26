@@ -13,6 +13,8 @@ export type BrothCategory =
   | "limited";
 export type QueueLevel = "none" | "under30" | "long";
 export type ChangeType = "price_change" | "hours_update" | "closure" | "info_fix" | "menu_update";
+export type VerificationCheckStatus = "missing" | "needs_review" | "source_confirmed" | "approved" | "rejected";
+export type VerificationEntityType = "store" | "branch" | "menu" | "dish" | "opening_hours";
 
 export interface DatabaseSource {
   id: string; // UUID
@@ -166,6 +168,34 @@ export interface DatabaseAdminProfile {
   email: string;
   full_name: string | null;
   role: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DatabaseSourceLink {
+  id: string;
+  source_id: string;
+  entity_type: string;
+  entity_id: string;
+  url: string;
+  title: string | null;
+  checked_at: string;
+  checked_by: string | null;
+  created_at: string;
+}
+
+export interface DatabaseVerificationCheck {
+  id: string;
+  store_id: string;
+  entity_type: VerificationEntityType;
+  entity_id: string;
+  field_name: string;
+  is_required: boolean;
+  status: VerificationCheckStatus;
+  source_link_id: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

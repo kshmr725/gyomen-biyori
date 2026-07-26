@@ -1,5 +1,5 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { DatabaseStore, DatabaseSource, DataQuality } from "@/lib/types/database";
+import type { DatabaseStore, DatabaseSource } from "@/lib/types/database";
 
 export type CreateStoreInput = {
   name: string;
@@ -8,7 +8,6 @@ export type CreateStoreInput = {
   area: string;
   description?: string;
   basePrice: number;
-  dataQuality: DataQuality;
   sourceId?: string;
 };
 
@@ -58,8 +57,11 @@ export class DataService {
         area: input.area,
         description: input.description ?? null,
         base_price: input.basePrice,
-        data_quality: input.dataQuality,
-        checked_at: input.dataQuality === "verified" ? new Date().toISOString() : null,
+        // New records always enter the verification workflow as drafts. Final
+        // verification is available only through the database RPC guard.
+        data_quality: "unverified",
+        verification_status: "pending",
+        checked_at: null,
         source_id: input.sourceId ?? null,
       };
 
@@ -71,28 +73,6 @@ export class DataService {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error during store creation";
       return { success: false, error: msg };
-    }
-  }
-
-  /**
-   * Update Store data quality & verification timestamp
-   */
-  static async updateStoreQuality(storeId: string, quality: DataQuality): Promise<boolean> {
-    const client = getSupabaseBrowserClient();
-    if (!client) return false;
-
-    try {
-      const { error } = await client
-        .from("stores")
-        .update({
-          data_quality: quality,
-          checked_at: quality === "verified" ? new Date().toISOString() : null,
-        })
-        .eq("id", storeId);
-
-      return !error;
-    } catch {
-      return false;
     }
   }
 }

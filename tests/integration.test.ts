@@ -1,5 +1,4 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { UNVERIFIED_DRAFT_5_RAMEN_SHOPS } from "../src/lib/seed-v2";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:54321";
 const ANON_KEY =
@@ -46,6 +45,9 @@ async function setupTestUsers(): Promise<TestUsers> {
         full_name: `${role} User`,
         role,
       });
+    } else {
+      // A previous interrupted run must not leave the viewer with a CMS role.
+      await serviceClient.from("admin_profiles").delete().eq("id", user.id);
     }
 
     const client = createClient(SUPABASE_URL, ANON_KEY);
@@ -77,9 +79,91 @@ async function runFullSupabaseAuthIntegrationTests() {
 
   const { viewer, editor, admin, viewerId, editorId, adminId } = await setupTestUsers();
 
-  // 1. Seed Unverified Draft Shops & 1 Verified Shop via Service Role
+  // Clean known fixtures first so the suite remains repeatable even after an
+  // interrupted previous run. These IDs are test-only and do not overlap the
+  // optional five-store draft seed.
+  await serviceClient.from("verification_checks").delete().eq("store_id", "b8888888-8888-4888-8888-888888888888");
+  await serviceClient.from("source_links").delete().in("id", [
+    "d8888888-8888-4888-8888-888888888888",
+    "e8888888-8888-4888-8888-888888888888",
+  ]);
+  await serviceClient.from("dishes").delete().in("id", [
+    "f9111111-1111-4911-8911-111111111111",
+  ]);
+  await serviceClient.from("menus").delete().in("id", [
+    "d9111111-1111-4911-8911-111111111111",
+    "d7777777-7777-4777-8777-777777777777",
+  ]);
+  await serviceClient.from("branches").delete().in("id", [
+    "c9111111-1111-4911-8911-111111111111",
+    "c7777777-7777-4777-8777-777777777777",
+    "c9999999-9999-4999-8999-999999999999",
+    "c8888888-8888-4888-8888-888888888888",
+  ]);
+  await serviceClient.from("stores").delete().in("id", [
+    "b9111111-1111-4911-8911-111111111111",
+    "b7777777-7777-4777-8777-777777777777",
+    "b9999999-9999-4999-8999-999999999999",
+    "b8888888-8888-4888-8888-888888888888",
+  ]);
+  await serviceClient.from("sources").delete().in("id", [
+    "a9111111-1111-4911-8911-111111111111",
+    "a8888888-8888-4888-8888-888888888888",
+  ]);
+  await serviceClient.from("update_logs").delete().in("entity_id", [
+    "b8888888-8888-4888-8888-888888888888",
+    "b9999999-9999-4999-8999-999999999999",
+  ]);
+  await serviceClient.from("update_logs").delete().eq("id", "a1111111-1111-4111-8111-111111111111");
+
+  // 1. Create self-contained fixtures; this suite never depends on local seeds.
   console.log("1. Seeding test stores into local Supabase DB...");
-  const draftEntry = UNVERIFIED_DRAFT_5_RAMEN_SHOPS[0];
+  const draftEntry = {
+    source: {
+      id: "a9111111-1111-4911-8911-111111111111",
+      name: "Integration draft source",
+      category: "official_web",
+      source_url: "https://example.test/integration-draft",
+      trust_tier: "high",
+    },
+    store: {
+      id: "b9111111-1111-4911-8911-111111111111",
+      name: "Integration Draft Ramen",
+      brand: "Integration Draft",
+      slug: "integration-draft-ramen",
+      area: "中山區",
+      base_price: 300,
+      data_quality: "unverified",
+      verification_status: "pending",
+    },
+    branch: {
+      id: "c9111111-1111-4911-8911-111111111111",
+      store_id: "b9111111-1111-4911-8911-111111111111",
+      branch_name: "Integration Draft Branch",
+      address: "台北市中山區測試路 1 號",
+      latitude: 25.05,
+      longitude: 121.52,
+      data_quality: "unverified",
+      verification_status: "pending",
+    },
+    menu: {
+      id: "d9111111-1111-4911-8911-111111111111",
+      branch_id: "c9111111-1111-4911-8911-111111111111",
+      title: "Integration Draft Menu",
+      data_quality: "unverified",
+      verification_status: "pending",
+    },
+    dishes: [
+      {
+        id: "f9111111-1111-4911-8911-111111111111",
+        menu_id: "d9111111-1111-4911-8911-111111111111",
+        name: "Integration Draft Dish",
+        price: 300,
+        data_quality: "unverified",
+        verification_status: "pending",
+      },
+    ],
+  };
 
   // Insert Source
   await serviceClient.from("sources").upsert(draftEntry.source);
@@ -116,7 +200,7 @@ async function runFullSupabaseAuthIntegrationTests() {
     verification_status: "editor_confirmed",
   });
 
-  console.log("✓ Seeded 1 verified store and 5 unverified draft stores");
+  console.log("✓ Seeded 1 verified store and 1 unverified draft fixture");
 
   // =========================================================================
   // 2. ANONYMOUS ROLE MATRIX
@@ -411,9 +495,217 @@ async function runFullSupabaseAuthIntegrationTests() {
   console.log("  ✓ Admin /admin -> 200 Allow CMS");
 
   // =========================================================================
-  // 7. CLEANUP
+  // 7. VERIFICATION WORKFLOW — real JWT/RLS contract, no pre-existing seed
   // =========================================================================
-  console.log("7. Cleaning up test entries & test Auth users...");
+  console.log("7. Testing verification workflow with self-contained fixtures...");
+  const verificationSourceId = "a8888888-8888-4888-8888-888888888888";
+  const verificationStoreId = "b8888888-8888-4888-8888-888888888888";
+  const verificationBranchId = "c8888888-8888-4888-8888-888888888888";
+  const storeSourceLinkId = "d8888888-8888-4888-8888-888888888888";
+  const branchSourceLinkId = "e8888888-8888-4888-8888-888888888888";
+
+  await serviceClient.from("sources").upsert({
+    id: verificationSourceId,
+    name: "Verification test source",
+    category: "official_web",
+    source_url: "https://example.test/verification-source",
+    trust_tier: "high",
+  });
+  await serviceClient.from("stores").upsert({
+    id: verificationStoreId,
+    name: "Verification Test Ramen",
+    brand: "Verification Test Brand",
+    slug: "verification-test-ramen",
+    area: "大安區",
+    base_price: 280,
+    data_quality: "unverified",
+    verification_status: "pending",
+  });
+  await serviceClient.from("branches").upsert({
+    id: verificationBranchId,
+    store_id: verificationStoreId,
+    branch_name: "Verification Test Branch",
+    address: "台北市大安區驗證路 1 號",
+    latitude: 25.03,
+    longitude: 121.55,
+    data_quality: "unverified",
+    verification_status: "pending",
+  });
+
+  // This insert intentionally expects the new checked_by column and is the
+  // first feature assertion. Before the migration, the following checklist
+  // insert fails because verification_checks does not exist.
+  await serviceClient.from("source_links").upsert([
+    {
+      id: storeSourceLinkId,
+      source_id: verificationSourceId,
+      entity_type: "store",
+      entity_id: verificationStoreId,
+      url: "https://example.test/verification-source/store",
+      checked_by: editorId,
+    },
+    {
+      id: branchSourceLinkId,
+      source_id: verificationSourceId,
+      entity_type: "branch",
+      entity_id: verificationBranchId,
+      url: "https://example.test/verification-source/branch",
+      checked_by: editorId,
+    },
+  ]);
+
+  const { error: editorCheckInsertError } = await editor.from("verification_checks").insert({
+    store_id: verificationStoreId,
+    entity_type: "store",
+    entity_id: verificationStoreId,
+    field_name: "name",
+    is_required: true,
+    status: "missing",
+  });
+  if (editorCheckInsertError) {
+    throw new Error(`Editor could not create a checklist item: ${editorCheckInsertError.message}`);
+  }
+
+  const { data: storeChecks } = await editor
+    .from("verification_checks")
+    .select("id")
+    .eq("store_id", verificationStoreId)
+    .eq("field_name", "name");
+  const storeNameCheckId = storeChecks?.[0]?.id as string | undefined;
+  if (!storeNameCheckId) throw new Error("Editor-created store checklist item was not returned.");
+
+  const { data: anonChecks } = await anonClient.from("verification_checks").select("id").eq("store_id", verificationStoreId);
+  if (anonChecks && anonChecks.length > 0) throw new Error("RLS Violation! Anonymous read verification checks.");
+
+  const { data: viewerChecks } = await viewer.from("verification_checks").select("id").eq("store_id", verificationStoreId);
+  if (viewerChecks && viewerChecks.length > 0) throw new Error("RLS Violation! Viewer read verification checks.");
+
+  const { error: editorDirectQualityError } = await editor
+    .from("stores")
+    .update({ data_quality: "verified" })
+    .eq("id", verificationStoreId);
+  if (!editorDirectQualityError) throw new Error("Editor bypassed the promotion guard with a direct data_quality update.");
+
+  const { error: editorDirectVerificationFieldsError } = await editor
+    .from("stores")
+    .update({
+      verification_status: "editor_confirmed",
+      verified_by: editorId,
+      checked_at: new Date().toISOString(),
+    })
+    .eq("id", verificationStoreId);
+  if (!editorDirectVerificationFieldsError) {
+    throw new Error("Editor bypassed the workflow with direct verification_status, verified_by, or checked_at updates.");
+  }
+
+  const { error: editorSourceCheckedError } = await editor.rpc("set_store_verification_status", {
+    p_store_id: verificationStoreId,
+    p_next_status: "source_checked",
+    p_notes: "Editor submitted sources",
+  });
+  if (editorSourceCheckedError) throw new Error(`Editor could not submit source review: ${editorSourceCheckedError.message}`);
+
+  const { error: editorApproveError } = await editor
+    .from("verification_checks")
+    .update({
+      status: "approved",
+      source_link_id: storeSourceLinkId,
+      reviewed_by: editorId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", storeNameCheckId);
+  if (!editorApproveError) throw new Error("Editor bypassed admin-only checklist approval.");
+
+  const { error: editorSourceConfirmError } = await editor
+    .from("verification_checks")
+    .update({
+      status: "source_confirmed",
+      source_link_id: storeSourceLinkId,
+      reviewed_by: editorId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", storeNameCheckId);
+  if (editorSourceConfirmError) throw new Error(`Editor could not confirm a sourced checklist item: ${editorSourceConfirmError.message}`);
+
+  const { error: branchCheckInsertError } = await editor.from("verification_checks").insert({
+    store_id: verificationStoreId,
+    entity_type: "branch",
+    entity_id: verificationBranchId,
+    field_name: "address",
+    is_required: true,
+    status: "source_confirmed",
+    source_link_id: branchSourceLinkId,
+    reviewed_by: editorId,
+    reviewed_at: new Date().toISOString(),
+  });
+  if (branchCheckInsertError) throw new Error(`Editor could not create a branch checklist item: ${branchCheckInsertError.message}`);
+
+  const { error: adminDirectQualityError } = await admin
+    .from("stores")
+    .update({ data_quality: "verified" })
+    .eq("id", verificationStoreId);
+  if (!adminDirectQualityError) throw new Error("Admin bypassed the promotion guard with a direct data_quality update.");
+
+  const { error: editorPromoteError } = await editor.rpc("promote_store_verification", { p_store_id: verificationStoreId });
+  if (!editorPromoteError) throw new Error("Editor bypassed strict-admin final promotion.");
+
+  const { error: adminConfirmError } = await admin.rpc("set_store_verification_status", {
+    p_store_id: verificationStoreId,
+    p_next_status: "editor_confirmed",
+    p_notes: "Admin reviewed the checklist",
+  });
+  if (adminConfirmError) throw new Error(`Admin could not confirm the verification review: ${adminConfirmError.message}`);
+
+  const { error: incompletePromotionError } = await admin.rpc("promote_store_verification", { p_store_id: verificationStoreId });
+  if (!incompletePromotionError) throw new Error("Promotion succeeded before all required checks were approved.");
+
+  const { error: adminApproveError } = await admin
+    .from("verification_checks")
+    .update({ status: "approved", reviewed_by: adminId, reviewed_at: new Date().toISOString() })
+    .eq("store_id", verificationStoreId);
+  if (adminApproveError) throw new Error(`Admin could not approve required checks: ${adminApproveError.message}`);
+
+  const { error: promotionError } = await admin.rpc("promote_store_verification", { p_store_id: verificationStoreId });
+  if (promotionError) throw new Error(`Strict-admin promotion failed: ${promotionError.message}`);
+
+  const { data: promotedStore } = await admin
+    .from("stores")
+    .select("data_quality, verification_status, verified_by, checked_at")
+    .eq("id", verificationStoreId)
+    .single();
+  if (
+    !promotedStore ||
+    promotedStore.data_quality !== "verified" ||
+    promotedStore.verification_status !== "editor_confirmed" ||
+    promotedStore.verified_by !== adminId ||
+    !promotedStore.checked_at
+  ) {
+    throw new Error("Promotion did not atomically set the verified store fields.");
+  }
+
+  const { data: promotionLogs } = await admin
+    .from("update_logs")
+    .select("before_state, after_state")
+    .eq("entity_id", verificationStoreId);
+  if (!promotionLogs || promotionLogs.length < 3) {
+    throw new Error("Verification transitions and final promotion were not written to update_logs.");
+  }
+  console.log("  ✓ RLS, source checks, strict-admin promotion, and audit logging enforced");
+
+  // =========================================================================
+  // 8. CLEANUP
+  // =========================================================================
+  console.log("8. Cleaning up test entries & test Auth users...");
+  await serviceClient.from("verification_checks").delete().eq("store_id", verificationStoreId);
+  await serviceClient.from("source_links").delete().in("id", [storeSourceLinkId, branchSourceLinkId]);
+  await serviceClient.from("branches").delete().eq("id", verificationBranchId);
+  await serviceClient.from("stores").delete().eq("id", verificationStoreId);
+  await serviceClient.from("sources").delete().eq("id", verificationSourceId);
+  await serviceClient.from("dishes").delete().eq("id", draftEntry.dishes[0].id);
+  await serviceClient.from("menus").delete().eq("id", draftEntry.menu.id);
+  await serviceClient.from("branches").delete().eq("id", draftEntry.branch.id);
+  await serviceClient.from("stores").delete().eq("id", draftEntry.store.id);
+  await serviceClient.from("sources").delete().eq("id", draftEntry.source.id);
   await serviceClient.from("menus").delete().eq("id", edMenuId);
   await serviceClient.from("branches").delete().eq("id", edBranchId);
   await serviceClient.from("stores").delete().eq("id", editorNewStoreId);

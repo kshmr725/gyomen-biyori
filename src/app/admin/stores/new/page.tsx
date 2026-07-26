@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataService } from "@/lib/services/data-service";
-import type { DataQuality } from "@/lib/types/database";
 
 export default function AdminNewStorePage() {
   const router = useRouter();
@@ -13,7 +12,6 @@ export default function AdminNewStorePage() {
   const [area, setArea] = useState("中山區");
   const [description, setDescription] = useState("");
   const [basePrice, setBasePrice] = useState(280);
-  const [dataQuality, setDataQuality] = useState<DataQuality>("verified");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,7 +27,6 @@ export default function AdminNewStorePage() {
       area,
       description,
       basePrice,
-      dataQuality,
     });
 
     setSubmitting(false);
@@ -119,18 +116,6 @@ export default function AdminNewStorePage() {
             onChange={(e) => setBasePrice(Number(e.target.value))}
             style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc" }}
           />
-        </div>
-
-        <div>
-          <label style={{ fontWeight: 600, display: "block", marginBottom: "4px" }}>資料品質標記 (Data Quality)</label>
-          <select
-            value={dataQuality}
-            onChange={(e) => setDataQuality(e.target.value as DataQuality)}
-            style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc" }}
-          >
-            <option value="verified">✅ Verified (已完成人工/官方驗證，會寫入 checked_at 時間戳)</option>
-            <option value="unverified">⚠️ Unverified (社群草稿/待校對資料)</option>
-          </select>
         </div>
 
         <div>
