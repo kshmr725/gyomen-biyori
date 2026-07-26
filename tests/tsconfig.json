@@ -10,6 +10,6 @@
     "rootDir": "..",
     "outDir": "../.test-dist"
   },
-  "include": ["recommendation.test.ts", "../src/lib/types.ts", "../src/lib/hours.ts", "../src/lib/recommendation.ts", "../src/lib/seed.ts"]
+  "include": ["recommendation.test.ts", "schema.test.ts", "../src/lib/types.ts", "../src/lib/hours.ts", "../src/lib/recommendation.ts", "../src/lib/seed.ts"]
 }
 
