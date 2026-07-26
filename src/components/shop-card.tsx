@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Shop } from "@/lib/types";
 import { queueLabel } from "@/lib/recommendation";
 import { queueLevelAt } from "@/lib/hours";
-import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useLanguage } from "@/lib/i18n";
 
 export function ShopCard({
@@ -26,32 +26,40 @@ export function ShopCard({
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    const supabase = getSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id);
-        supabase
-          .from("favorites")
-          .select("*")
-          .eq("user_id", data.user.id)
-          .eq("shop_id", shop.id)
-          .then(({ data: favData }) => {
-            if (favData && favData.length > 0) setIsFav(true);
-          });
+    async function checkFav() {
+      const client = getSupabaseBrowserClient();
+      if (!client) return;
+      try {
+        const { data } = await client.auth.getUser();
+        if (data?.user) {
+          setUserId(data.user.id);
+          const { data: favData } = await client
+            .from("favorites")
+            .select("*")
+            .eq("user_id", data.user.id)
+            .eq("shop_id", shop.id);
+          if (favData && favData.length > 0) setIsFav(true);
+        }
+      } catch {
+        // Ignore guest error
       }
-    });
+    }
+    checkFav();
   }, [shop.id]);
 
   async function toggleFavorite() {
-    if (!isSupabaseConfigured() || !userId) return;
     const supabase = getSupabaseBrowserClient();
-    if (isFav) {
-      await supabase.from("favorites").delete().eq("user_id", userId).eq("shop_id", shop.id);
-      setIsFav(false);
-    } else {
-      await supabase.from("favorites").insert([{ user_id: userId, shop_id: shop.id }]);
-      setIsFav(true);
+    if (!supabase || !userId) return;
+    try {
+      if (isFav) {
+        await supabase.from("favorites").delete().eq("user_id", userId).eq("shop_id", shop.id);
+        setIsFav(false);
+      } else {
+        await supabase.from("favorites").insert([{ user_id: userId, shop_id: shop.id }]);
+        setIsFav(true);
+      }
+    } catch {
+      // Ignore auth error in guest mode
     }
   }
 
