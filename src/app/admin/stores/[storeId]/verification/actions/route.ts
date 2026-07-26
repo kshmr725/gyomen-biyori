@@ -124,32 +124,21 @@ export async function POST(
 
       const check = await findCheck(actor, storeId, body.checkId);
       if (!check) return errorResponse(request, storeId, "Checklist item not found", 404);
+      if (check.status === "approved" && actor.role === "editor") {
+        return errorResponse(request, storeId, "Only strict admins can replace approved source evidence", 403);
+      }
 
-      const sourcePayload = {
-        source_id: body.sourceId,
-        entity_type: check.entity_type,
-        entity_id: check.entity_id,
-        url: parsedUrl.toString(),
-        title: body.title?.trim() || null,
-        checked_by: actor.user.id,
-        checked_at: new Date().toISOString(),
-      };
-      const sourceQuery = check.source_link_id
-        ? actor.client
-            .from("source_links")
-            .update(sourcePayload)
-            .eq("id", check.source_link_id)
-            .select()
-            .single()
-        : actor.client.from("source_links").insert(sourcePayload).select().single();
-      const { data: sourceLink, error: sourceError } = await sourceQuery;
+      const { data: sourceLink, error: sourceError } = await actor.client.rpc(
+        "set_verification_check_source",
+        {
+          p_store_id: storeId,
+          p_check_id: check.id,
+          p_source_id: body.sourceId,
+          p_url: parsedUrl.toString(),
+          p_title: body.title?.trim() || null,
+        },
+      );
       if (sourceError) return errorResponse(request, storeId, sourceError.message, 409);
-
-      const { error: checkError } = await actor.client
-        .from("verification_checks")
-        .update({ source_link_id: sourceLink.id })
-        .eq("id", check.id);
-      if (checkError) return errorResponse(request, storeId, checkError.message, 409);
 
       return NextResponse.json({
         ok: true,

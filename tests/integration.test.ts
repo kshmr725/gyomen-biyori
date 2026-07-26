@@ -637,6 +637,43 @@ async function runFullSupabaseAuthIntegrationTests() {
     });
     if (approveResponse.status !== 200) throw new Error("Admin could not approve the required check.");
 
+    const { error: editorApprovedEvidenceUpdateError } = await editor
+      .from("source_links")
+      .update({ url: "https://example.test/editor-direct-approved-evidence-bypass" })
+      .eq("id", routeSourceLinkId);
+    const editorApprovedEvidenceRouteResponse = await postAction(editorToken, {
+      action: "attach_source",
+      checkId: routeCheckId,
+      sourceId: routeSourceId,
+      url: "https://example.test/editor-route-approved-evidence-bypass",
+      title: "Editor replacement must be rejected",
+    });
+    if (!editorApprovedEvidenceUpdateError) {
+      throw new Error("Editor directly modified source evidence used by an approved verification check.");
+    }
+    if (editorApprovedEvidenceRouteResponse.status !== 403) {
+      throw new Error(
+        `Editor replacement of approved evidence returned ${editorApprovedEvidenceRouteResponse.status}, expected 403.`,
+      );
+    }
+
+    const { data: protectedEvidence } = await admin
+      .from("source_links")
+      .select("url")
+      .eq("id", routeSourceLinkId)
+      .single();
+    if (protectedEvidence?.url !== "https://example.test/route-source/store-name") {
+      throw new Error("Rejected editor mutations changed the approved source evidence.");
+    }
+
+    const { error: adminApprovedEvidenceUpdateError } = await admin
+      .from("source_links")
+      .update({ url: "https://example.test/admin-reviewed-approved-evidence" })
+      .eq("id", routeSourceLinkId);
+    if (adminApprovedEvidenceUpdateError) {
+      throw new Error(`Strict admin could not update approved evidence: ${adminApprovedEvidenceUpdateError.message}`);
+    }
+
     const promoteResponse = await postAction(adminToken, { action: "promote" });
     const promoteJson = (await promoteResponse.json()) as {
       store?: { data_quality?: string; verified_by?: string | null };
