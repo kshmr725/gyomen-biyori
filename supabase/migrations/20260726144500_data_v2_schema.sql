@@ -332,3 +332,11 @@ CREATE POLICY "Admin sources write" ON sources FOR ALL USING (is_admin(auth.uid(
 CREATE POLICY "Admin source_links write" ON source_links FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin update_logs write" ON update_logs FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Admin profiles select" ON admin_profiles FOR SELECT USING (auth.uid() = id OR is_admin(auth.uid()));
+
+-- Role Privileges Grants for PostgREST & Supabase Roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;

@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "rm -rf .test-dist && tsc -p tests/tsconfig.json && node .test-dist/tests/recommendation.test.js && node .test-dist/tests/schema.test.js"
+    "test": "rm -rf .test-dist && tsc -p tests/tsconfig.json && node .test-dist/tests/recommendation.test.js && node .test-dist/tests/schema.test.js && node .test-dist/tests/integration.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",

@@ -17,6 +17,7 @@
   "include": [
     "recommendation.test.ts",
     "schema.test.ts",
+    "integration.test.ts",
     "../src/lib/types.ts",
     "../src/lib/hours.ts",
     "../src/lib/recommendation.ts",
