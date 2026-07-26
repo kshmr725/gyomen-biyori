@@ -1,0 +1,139 @@
+/* Gyomen Biyori CIS v2 */
+
+.brand-icon {
+  width: 54px;
+  height: 44px;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.brand-icon-compact {
+  width: 48px;
+  height: 40px;
+}
+
+.brand-icon svg {
+  filter: drop-shadow(0 4px 8px rgba(30, 42, 52, 0.08));
+}
+
+.brand-lockup-with-icon {
+  gap: 12px;
+}
+
+.brand-wordmark {
+  display: grid;
+  gap: 2px;
+  align-items: center;
+}
+
+.brand-wordmark .brand-jp {
+  line-height: 1;
+}
+
+.brand-wordmark .brand-en {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  line-height: 1;
+}
+
+.mobile-bottom-nav {
+  border: 1px solid rgba(28, 38, 33, 0.12);
+  background: rgba(255, 252, 247, 0.96);
+  box-shadow: 0 12px 36px rgba(28, 38, 33, 0.14);
+}
+
+.mobile-nav-item {
+  position: relative;
+  color: #68736d;
+  transition: color 160ms ease-out, transform 160ms ease-out;
+}
+
+.mobile-nav-item::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: transparent;
+  transform: translateX(-50%);
+  transition: background-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.mobile-nav-item.active {
+  color: var(--ink);
+}
+
+.mobile-nav-item.active::before {
+  background: #f2e9dc;
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.mobile-nav-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 2px;
+}
+
+.mobile-nav-icon svg {
+  width: 26px;
+  height: 26px;
+  overflow: visible;
+}
+
+.cis-icon-stroke,
+.cis-icon-accent {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cis-icon-fill {
+  fill: #1e2a34;
+  stroke: #1e2a34;
+  stroke-width: 1.2;
+}
+
+.cis-icon-accent,
+.cis-icon-accent-fill {
+  color: #f27a2b;
+  stroke: #f27a2b;
+}
+
+.cis-icon-accent-fill {
+  fill: #f27a2b;
+}
+
+.mobile-nav-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 900px) {
+  .brand-icon-compact {
+    width: 42px;
+    height: 35px;
+  }
+
+  .brand-lockup-with-icon {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-item,
+  .mobile-nav-item::before {
+    transition: none;
+  }
+}

@@ -3,13 +3,14 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./performance.css";
 import "./location-flow.css";
+import "./cis.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LanguageProvider } from "@/lib/i18n";
 import { PWAInstaller } from "@/components/pwa-installer";
 
 export const viewport: Viewport = {
-  themeColor: "#9B2C2C",
+  themeColor: "#F6EDE2",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -25,8 +26,12 @@ export const metadata: Metadata = {
     title: "魚麵日和",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/icon.svg",
   },
 };
 
