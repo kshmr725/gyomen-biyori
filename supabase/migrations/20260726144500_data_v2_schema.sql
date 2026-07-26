@@ -1,11 +1,12 @@
 -- ============================================================================
--- 魚麵日和 (GYOMEN BIYORI) — Data v2 Refined Schema Migration
+-- 魚麵日和 (GYOMEN BIYORI) — Data v2 Schema Migration (v1.1 Corrected)
 -- Version: 20260726144500
--- Tables: 17 Core Domain Tables with Precise Entity FKs & RLS Security
+-- Features: Strict UUID Foreign Keys, verification_status, is_24_hours Support
 -- ============================================================================
 
 -- 1. ENUMS
 CREATE TYPE data_quality_enum AS ENUM ('verified', 'unverified');
+CREATE TYPE verification_status_enum AS ENUM ('pending', 'source_checked', 'editor_confirmed', 'field_verified');
 CREATE TYPE broth_category_enum AS ENUM ('tonkotsu', 'tori_pai_tan', 'shoyu', 'shio', 'miso', 'niboshi', 'ebi', 'spicy', 'tsukemen', 'limited');
 CREATE TYPE queue_level_enum AS ENUM ('none', 'under30', 'long');
 CREATE TYPE change_type_enum AS ENUM ('price_change', 'hours_update', 'closure', 'info_fix', 'menu_update');
@@ -19,7 +20,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 1. admin_profiles (管理者權限與身分)
+-- 1. admin_profiles (管理者與權限)
 CREATE TABLE admin_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
@@ -29,13 +30,15 @@ CREATE TABLE admin_profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. sources (資料來源主表)
+-- 2. sources (資料來源主表 - 需包含具體 URL)
 CREATE TABLE sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  category TEXT NOT NULL, -- official_web, google_maps, facebook, instagram, threads, ptt, dcard, editor_visit
+  category TEXT NOT NULL, -- official_web, official_facebook, official_instagram, google_maps, threads, ptt, dcard
+  source_url TEXT NOT NULL,
   trust_tier TEXT NOT NULL DEFAULT 'medium',
   notes TEXT,
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -50,13 +53,16 @@ CREATE TABLE stores (
   description TEXT,
   base_price INTEGER NOT NULL DEFAULT 250,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  verified_by TEXT,
+  verification_notes TEXT,
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 4. branches (分店實體 - 包含實際經緯度與地址)
+-- 4. branches (分店實體 - 包含經緯度與純電話)
 CREATE TABLE branches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
@@ -64,26 +70,29 @@ CREATE TABLE branches (
   address TEXT NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
-  phone TEXT,
+  phone TEXT, -- 純電話號碼或 NULL，不允許文字備註
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  verified_by TEXT,
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 5. opening_hours (營業時間 - 關聯至 branch_id)
+-- 5. opening_hours (營業時間 - 關聯至 branch_id，支援 is_24_hours)
 CREATE TABLE opening_hours (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
-  open_time TIME NOT NULL,
-  close_time TIME NOT NULL,
+  open_time TIME NOT NULL DEFAULT '00:00:00',
+  close_time TIME NOT NULL DEFAULT '23:59:59',
+  is_24_hours BOOLEAN NOT NULL DEFAULT FALSE,
   is_break BOOLEAN NOT NULL DEFAULT FALSE,
   break_start_time TIME,
   break_end_time TIME,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -99,6 +108,7 @@ CREATE TABLE nearby_transit (
   exit_name TEXT,
   walk_minutes INTEGER NOT NULL,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -109,18 +119,18 @@ CREATE TABLE nearby_transit (
 CREATE TABLE menus (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
-  title TEXT NOT NULL DEFAULT '分店主打菜單',
+  title TEXT NOT NULL DEFAULT '分店菜單',
   version TEXT,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 8. dishes (單品餐點)
+-- 8. dishes (單品餐點 - 必備指向有效 menu_id)
 CREATE TABLE dishes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   menu_id UUID NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
@@ -131,6 +141,7 @@ CREATE TABLE dishes (
   broth_category broth_category_enum,
   description TEXT,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -145,16 +156,17 @@ CREATE TABLE photos (
   dish_id UUID REFERENCES dishes(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
   caption TEXT,
-  category TEXT NOT NULL DEFAULT 'dish', -- cover, dish, storefront, menu
+  category TEXT NOT NULL DEFAULT 'dish',
   source_credit TEXT,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 10. tags (特色標籤表)
+-- 10. tags (標籤)
 CREATE TABLE tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
@@ -164,14 +176,14 @@ CREATE TABLE tags (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 11. branch_tags (分店標籤關聯表)
+-- 11. branch_tags (分店標籤關聯)
 CREATE TABLE branch_tags (
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
   PRIMARY KEY (branch_id, tag_id)
 );
 
--- 12. payment_methods (支付方式定義)
+-- 12. payment_methods (支付方式)
 CREATE TABLE payment_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT NOT NULL UNIQUE,
@@ -180,34 +192,34 @@ CREATE TABLE payment_methods (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 13. branch_payment_methods (分店支付方式關聯)
+-- 13. branch_payment_methods (分店支付關聯)
 CREATE TABLE branch_payment_methods (
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   payment_method_id UUID NOT NULL REFERENCES payment_methods(id) ON DELETE CASCADE,
   PRIMARY KEY (branch_id, payment_method_id)
 );
 
--- 14. queue_records (排隊估算紀錄 - 關聯至 branch_id)
+-- 14. queue_records (排隊紀錄 - 關聯至 branch_id)
 CREATE TABLE queue_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
   level queue_level_enum NOT NULL DEFAULT 'under30',
   peak_wait_minutes INTEGER NOT NULL DEFAULT 30,
   off_peak_wait_minutes INTEGER NOT NULL DEFAULT 10,
   queue_rules TEXT,
   data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
   checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 15. editorial_entries (編輯短評與魚麵分)
+-- 15. editorial_entries (草稿與正式編輯短評)
 CREATE TABLE editorial_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-  editor_name TEXT NOT NULL DEFAULT '小魚與編輯團隊',
+  editor_name TEXT NOT NULL DEFAULT '魚麵編輯草稿',
   editor_note TEXT NOT NULL,
   recommended_dish TEXT,
   gyomen_score_overall NUMERIC(3, 1) CHECK (gyomen_score_overall BETWEEN 0.0 AND 5.0),
@@ -215,18 +227,19 @@ CREATE TABLE editorial_entries (
   gyomen_score_noodle NUMERIC(3, 1),
   gyomen_score_chashu NUMERIC(3, 1),
   gyomen_score_value NUMERIC(3, 1),
-  data_quality data_quality_enum NOT NULL DEFAULT 'verified',
-  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 16. source_links (資料來源連結明細 - 支援多動態實體)
+-- 16. source_links (資料來源連結明細)
 CREATE TABLE source_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL, -- store, branch, dish, photo, opening_hours
+  entity_type TEXT NOT NULL,
   entity_id UUID NOT NULL,
   url TEXT NOT NULL,
   title TEXT,
@@ -234,11 +247,11 @@ CREATE TABLE source_links (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 17. update_logs (資料變更歷程 - 包含 before/after state 差異比對)
+-- 17. update_logs (資料異動日誌)
 CREATE TABLE update_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   changed_by UUID REFERENCES admin_profiles(id) ON DELETE SET NULL,
-  entity_type TEXT NOT NULL, -- store, branch, dish, hours
+  entity_type TEXT NOT NULL,
   entity_id UUID NOT NULL,
   change_type change_type_enum NOT NULL,
   summary TEXT NOT NULL,
