@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { startNextTestServer } from "./next-test-server";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:54321";
 const ANON_KEY =
@@ -83,6 +84,7 @@ async function runFullSupabaseAuthIntegrationTests() {
   // interrupted previous run. These IDs are test-only and do not overlap the
   // optional five-store draft seed.
   await serviceClient.from("verification_checks").delete().eq("store_id", "b8888888-8888-4888-8888-888888888888");
+  await serviceClient.from("verification_checks").delete().eq("store_id", "b8222222-2222-4822-8822-222222222222");
   await serviceClient.from("source_links").delete().in("id", [
     "d8888888-8888-4888-8888-888888888888",
     "e8888888-8888-4888-8888-888888888888",
@@ -99,20 +101,24 @@ async function runFullSupabaseAuthIntegrationTests() {
     "c7777777-7777-4777-8777-777777777777",
     "c9999999-9999-4999-8999-999999999999",
     "c8888888-8888-4888-8888-888888888888",
+    "c8222222-2222-4822-8822-222222222222",
   ]);
   await serviceClient.from("stores").delete().in("id", [
     "b9111111-1111-4911-8911-111111111111",
     "b7777777-7777-4777-8777-777777777777",
     "b9999999-9999-4999-8999-999999999999",
     "b8888888-8888-4888-8888-888888888888",
+    "b8222222-2222-4822-8822-222222222222",
   ]);
   await serviceClient.from("sources").delete().in("id", [
     "a9111111-1111-4911-8911-111111111111",
     "a8888888-8888-4888-8888-888888888888",
+    "a8222222-2222-4822-8822-222222222222",
   ]);
   await serviceClient.from("update_logs").delete().in("entity_id", [
     "b8888888-8888-4888-8888-888888888888",
     "b9999999-9999-4999-8999-999999999999",
+    "b8222222-2222-4822-8822-222222222222",
   ]);
   await serviceClient.from("update_logs").delete().eq("id", "a1111111-1111-4111-8111-111111111111");
 
@@ -452,50 +458,216 @@ async function runFullSupabaseAuthIntegrationTests() {
   console.log("  ✓ Admin update_logs write and SELECT -> allowed");
 
   // =========================================================================
-  // 6. /admin CMS AUTH GUARD SIMULATION
+  // 6. REAL NEXT.JS ROUTE GUARD + CMS ACTIONS
   // =========================================================================
-  console.log("6. Testing /admin Route Auth Guard Simulation...");
-  async function simulateAdminGuard(userClient: SupabaseClient | null) {
-    if (!userClient) return { status: 401, action: "redirect_login" };
+  console.log("6. Testing the real Next.js verification route and server-side guard...");
+  const routeSourceId = "a8222222-2222-4822-8822-222222222222";
+  const routeStoreId = "b8222222-2222-4822-8822-222222222222";
+  const routeBranchId = "c8222222-2222-4822-8822-222222222222";
+  await serviceClient.from("sources").upsert({
+    id: routeSourceId,
+    name: "Route test official source",
+    category: "official_web",
+    source_url: "https://example.test/route-source",
+    trust_tier: "high",
+  });
+  await serviceClient.from("stores").upsert({
+    id: routeStoreId,
+    name: "Route Guard Test Ramen",
+    brand: "Route Guard Test",
+    slug: "route-guard-test-ramen",
+    area: "中山區",
+    base_price: 290,
+    data_quality: "unverified",
+    verification_status: "pending",
+  });
+  await serviceClient.from("branches").upsert({
+    id: routeBranchId,
+    store_id: routeStoreId,
+    branch_name: "Route Test Branch",
+    address: "台北市中山區路由路 1 號",
+    latitude: 25.05,
+    longitude: 121.52,
+    data_quality: "unverified",
+    verification_status: "pending",
+  });
+
+  async function accessToken(client: SupabaseClient) {
     const {
-      data: { user },
-    } = await userClient.auth.getUser();
-    if (!user) return { status: 401, action: "redirect_login" };
+      data: { session },
+    } = await client.auth.getSession();
+    if (!session?.access_token) throw new Error("Test user session has no access token.");
+    return session.access_token;
+  }
 
-    const { data: profile } = await userClient
-      .from("admin_profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+  const [viewerToken, editorToken, adminToken] = await Promise.all([
+    accessToken(viewer),
+    accessToken(editor),
+    accessToken(admin),
+  ]);
+  const routePath = `/admin/stores/${routeStoreId}/verification`;
+  const actionPath = `${routePath}/actions`;
+  const nextServer = await startNextTestServer({ supabaseUrl: SUPABASE_URL, anonKey: ANON_KEY });
+  let routeSourceLinkId: string | null = null;
 
-    if (!profile || (profile.role !== "admin" && profile.role !== "editor")) {
-      return { status: 403, action: "access_restricted" };
+  const roleHeaders = (token: string, accept = "application/json") => ({
+    authorization: `Bearer ${token}`,
+    accept,
+    "content-type": "application/json",
+  });
+  const postAction = (token: string, body: Record<string, unknown>, accept = "application/json") =>
+    fetch(`${nextServer.baseUrl}${actionPath}`, {
+      method: "POST",
+      headers: roleHeaders(token, accept),
+      body: JSON.stringify(body),
+      redirect: "manual",
+    });
+
+  try {
+    const anonymousPage = await fetch(`${nextServer.baseUrl}${routePath}`, { redirect: "manual" });
+    if (![307, 308].includes(anonymousPage.status)) {
+      throw new Error(`Guard Failure! Anonymous verification route returned ${anonymousPage.status}, expected redirect.`);
     }
-    return { status: 200, role: profile.role, action: "allow_cms" };
+
+    const viewerPage = await fetch(`${nextServer.baseUrl}${routePath}`, {
+      headers: roleHeaders(viewerToken),
+      redirect: "manual",
+    });
+    if (viewerPage.status !== 403) {
+      throw new Error(`Guard Failure! Viewer verification route returned ${viewerPage.status}, expected 403.`);
+    }
+
+    const editorPage = await fetch(`${nextServer.baseUrl}${routePath}`, { headers: roleHeaders(editorToken) });
+    const editorHtml = await editorPage.text();
+    if (
+      editorPage.status !== 200 ||
+      !editorHtml.includes("Route Guard Test Ramen") ||
+      !editorHtml.includes("required checks") ||
+      !editorHtml.includes("unresolved")
+    ) {
+      throw new Error(`Editor did not receive the real verification workbench (status ${editorPage.status}).`);
+    }
+
+    const adminPage = await fetch(`${nextServer.baseUrl}${routePath}`, { headers: roleHeaders(adminToken) });
+    if (adminPage.status !== 200 || !(await adminPage.text()).includes("Admin approval")) {
+      throw new Error(`Admin did not receive final-approval controls (status ${adminPage.status}).`);
+    }
+
+    const missingStorePage = await fetch(
+      `${nextServer.baseUrl}/admin/stores/00000000-0000-4000-8000-000000000000/verification`,
+      { headers: roleHeaders(editorToken), redirect: "manual" },
+    );
+    if (missingStorePage.status !== 404) {
+      throw new Error(`Missing store route returned ${missingStorePage.status}, expected 404.`);
+    }
+
+    const createCheckResponse = await postAction(editorToken, {
+      action: "create_check",
+      entityType: "store",
+      entityId: routeStoreId,
+      fieldName: "name",
+      isRequired: true,
+      notes: "Verify the official store name",
+    });
+    const createCheckJson = (await createCheckResponse.json()) as { check?: { id?: string }; error?: string };
+    const routeCheckId = createCheckJson.check?.id;
+    if (createCheckResponse.status !== 200 || !routeCheckId) {
+      throw new Error(`Editor could not create a checklist item: ${createCheckJson.error}`);
+    }
+
+    const needsReviewResponse = await postAction(editorToken, {
+      action: "update_check",
+      checkId: routeCheckId,
+      status: "needs_review",
+      notes: "Source located; detailed review pending",
+    });
+    if (needsReviewResponse.status !== 200) throw new Error("Editor could not move missing -> needs_review.");
+
+    const attachSourceResponse = await postAction(editorToken, {
+      action: "attach_source",
+      checkId: routeCheckId,
+      sourceId: routeSourceId,
+      url: "https://example.test/route-source/store-name",
+      title: "Official store profile",
+    });
+    const attachSourceJson = (await attachSourceResponse.json()) as {
+      sourceLink?: { id?: string };
+      error?: string;
+    };
+    routeSourceLinkId = attachSourceJson.sourceLink?.id ?? null;
+    if (attachSourceResponse.status !== 200 || !routeSourceLinkId) {
+      throw new Error(`Editor could not attach a source link: ${attachSourceJson.error}`);
+    }
+
+    const sourceConfirmedResponse = await postAction(editorToken, {
+      action: "update_check",
+      checkId: routeCheckId,
+      status: "source_confirmed",
+    });
+    if (sourceConfirmedResponse.status !== 200) {
+      throw new Error("Editor could not move needs_review -> source_confirmed.");
+    }
+
+    const submitResponse = await postAction(editorToken, { action: "submit_sources" });
+    if (submitResponse.status !== 200) throw new Error("Editor could not submit pending -> source_checked.");
+
+    const editorPromoteResponse = await postAction(editorToken, { action: "promote" });
+    if (editorPromoteResponse.status !== 403) {
+      throw new Error(`Editor final approval returned ${editorPromoteResponse.status}, expected 403.`);
+    }
+
+    const confirmResponse = await postAction(adminToken, { action: "confirm_store" });
+    if (confirmResponse.status !== 200) throw new Error("Admin could not move source_checked -> editor_confirmed.");
+
+    const incompletePromotionResponse = await postAction(adminToken, { action: "promote" }, "text/html");
+    if (incompletePromotionResponse.status !== 303) {
+      throw new Error(`Incomplete admin promotion returned ${incompletePromotionResponse.status}, expected 303.`);
+    }
+    const promotionErrorLocation = incompletePromotionResponse.headers.get("location");
+    if (!promotionErrorLocation) throw new Error("Promotion error did not provide a workbench redirect.");
+    const promotionErrorPage = await fetch(promotionErrorLocation, { headers: roleHeaders(adminToken) });
+    if (promotionErrorPage.status !== 200 || !(await promotionErrorPage.text()).includes("Final approval blocked")) {
+      throw new Error("Promotion RPC error was not displayed by the real verification page.");
+    }
+
+    const approveResponse = await postAction(adminToken, {
+      action: "update_check",
+      checkId: routeCheckId,
+      status: "approved",
+    });
+    if (approveResponse.status !== 200) throw new Error("Admin could not approve the required check.");
+
+    const promoteResponse = await postAction(adminToken, { action: "promote" });
+    const promoteJson = (await promoteResponse.json()) as {
+      store?: { data_quality?: string; verified_by?: string | null };
+      reread?: boolean;
+      error?: string;
+    };
+    if (
+      promoteResponse.status !== 200 ||
+      promoteJson.store?.data_quality !== "verified" ||
+      promoteJson.store?.verified_by !== adminId ||
+      promoteJson.reread !== true
+    ) {
+      throw new Error(`Successful promotion did not return freshly re-read DB state: ${promoteJson.error}`);
+    }
+
+    const promotedPage = await fetch(`${nextServer.baseUrl}${routePath}`, { headers: roleHeaders(adminToken) });
+    const promotedHtml = await promotedPage.text();
+    if (
+      promotedPage.status !== 200 ||
+      !promotedHtml.includes("verified") ||
+      !promotedHtml.includes("Final verification approved")
+    ) {
+      throw new Error("Promoted workbench did not re-read store state and audit log from the database.");
+    }
+  } finally {
+    await nextServer.stop();
   }
-
-  const anonGuard = await simulateAdminGuard(null);
-  if (anonGuard.status !== 401) throw new Error("Guard Failure! Anonymous passed /admin guard.");
-  console.log("  ✓ Anonymous /admin -> 401 Redirect to Login");
-
-  const viewerGuard = await simulateAdminGuard(viewer);
-  if (viewerGuard.status !== 403) throw new Error("Guard Failure! Viewer passed /admin guard.");
-  console.log("  ✓ Viewer /admin -> 403 Access Restricted");
-
-  const editorGuard = await simulateAdminGuard(editor);
-  if (editorGuard.status !== 200 || editorGuard.role !== "editor") {
-    throw new Error("Guard Failure! Editor blocked from /admin.");
-  }
-  console.log("  ✓ Editor /admin -> 200 Allow CMS");
-
-  const adminGuard = await simulateAdminGuard(admin);
-  if (adminGuard.status !== 200 || adminGuard.role !== "admin") {
-    throw new Error("Guard Failure! Admin blocked from /admin.");
-  }
-  console.log("  ✓ Admin /admin -> 200 Allow CMS");
+  console.log("  ✓ Real route guard, editor/admin actions, RPC errors, and post-promotion re-read verified");
 
   // =========================================================================
-  // 7. VERIFICATION WORKFLOW — real JWT/RLS contract, no pre-existing seed
+  // 7. VERIFICATION WORKFLOW — direct JWT/RLS contract, no pre-existing seed
   // =========================================================================
   console.log("7. Testing verification workflow with self-contained fixtures...");
   const verificationSourceId = "a8888888-8888-4888-8888-888888888888";
@@ -619,26 +791,58 @@ async function runFullSupabaseAuthIntegrationTests() {
   const { error: editorSourceConfirmError } = await editor
     .from("verification_checks")
     .update({
-      status: "source_confirmed",
       source_link_id: storeSourceLinkId,
       reviewed_by: editorId,
       reviewed_at: new Date().toISOString(),
+      status: "needs_review",
     })
     .eq("id", storeNameCheckId);
-  if (editorSourceConfirmError) throw new Error(`Editor could not confirm a sourced checklist item: ${editorSourceConfirmError.message}`);
+  if (editorSourceConfirmError) {
+    throw new Error(`Editor could not move a sourced checklist item to needs_review: ${editorSourceConfirmError.message}`);
+  }
 
-  const { error: branchCheckInsertError } = await editor.from("verification_checks").insert({
-    store_id: verificationStoreId,
-    entity_type: "branch",
-    entity_id: verificationBranchId,
-    field_name: "address",
-    is_required: true,
-    status: "source_confirmed",
-    source_link_id: branchSourceLinkId,
-    reviewed_by: editorId,
-    reviewed_at: new Date().toISOString(),
-  });
+  const { error: editorStoreConfirmError } = await editor
+    .from("verification_checks")
+    .update({ status: "source_confirmed" })
+    .eq("id", storeNameCheckId);
+  if (editorStoreConfirmError) {
+    throw new Error(`Editor could not confirm a sourced checklist item: ${editorStoreConfirmError.message}`);
+  }
+
+  const { data: branchCheck, error: branchCheckInsertError } = await editor
+    .from("verification_checks")
+    .insert({
+      store_id: verificationStoreId,
+      entity_type: "branch",
+      entity_id: verificationBranchId,
+      field_name: "address",
+      is_required: true,
+      status: "missing",
+    })
+    .select("id")
+    .single();
   if (branchCheckInsertError) throw new Error(`Editor could not create a branch checklist item: ${branchCheckInsertError.message}`);
+
+  const { error: branchNeedsReviewError } = await editor
+    .from("verification_checks")
+    .update({
+      status: "needs_review",
+      source_link_id: branchSourceLinkId,
+      reviewed_by: editorId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", branchCheck.id);
+  if (branchNeedsReviewError) {
+    throw new Error(`Editor could not move the branch check to needs_review: ${branchNeedsReviewError.message}`);
+  }
+
+  const { error: branchSourceConfirmError } = await editor
+    .from("verification_checks")
+    .update({ status: "source_confirmed" })
+    .eq("id", branchCheck.id);
+  if (branchSourceConfirmError) {
+    throw new Error(`Editor could not confirm the sourced branch check: ${branchSourceConfirmError.message}`);
+  }
 
   const { error: adminDirectQualityError } = await admin
     .from("stores")
@@ -696,6 +900,12 @@ async function runFullSupabaseAuthIntegrationTests() {
   // 8. CLEANUP
   // =========================================================================
   console.log("8. Cleaning up test entries & test Auth users...");
+  await serviceClient.from("verification_checks").delete().eq("store_id", routeStoreId);
+  if (routeSourceLinkId) await serviceClient.from("source_links").delete().eq("id", routeSourceLinkId);
+  await serviceClient.from("branches").delete().eq("id", routeBranchId);
+  await serviceClient.from("stores").delete().eq("id", routeStoreId);
+  await serviceClient.from("sources").delete().eq("id", routeSourceId);
+  await serviceClient.from("update_logs").delete().eq("entity_id", routeStoreId);
   await serviceClient.from("verification_checks").delete().eq("store_id", verificationStoreId);
   await serviceClient.from("source_links").delete().in("id", [storeSourceLinkId, branchSourceLinkId]);
   await serviceClient.from("branches").delete().eq("id", verificationBranchId);

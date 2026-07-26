@@ -19,6 +19,7 @@
     "recommendation.test.ts",
     "schema.test.ts",
     "integration.test.ts",
+    "next-test-server.ts",
     "../src/lib/types.ts",
     "../src/lib/hours.ts",
     "../src/lib/recommendation.ts",

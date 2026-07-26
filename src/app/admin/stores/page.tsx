@@ -45,6 +45,7 @@ export default function AdminStoreListPage() {
                 <th style={{ padding: "12px 16px" }}>基本價格</th>
                 <th style={{ padding: "12px 16px" }}>查證品質 (Data Quality)</th>
                 <th style={{ padding: "12px 16px" }}>最後校對時間</th>
+                <th style={{ padding: "12px 16px" }}>查證工作台</th>
               </tr>
             </thead>
             <tbody>
@@ -75,6 +76,14 @@ export default function AdminStoreListPage() {
                   </td>
                   <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
                     {store.checked_at ? new Date(store.checked_at).toLocaleDateString() : "未核對"}
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <Link
+                      className="button button-ghost"
+                      href={`/admin/stores/${store.id}/verification`}
+                    >
+                      開啟 checklist
+                    </Link>
                   </td>
                 </tr>
               ))}
