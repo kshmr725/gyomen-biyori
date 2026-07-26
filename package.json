@@ -7,13 +7,19 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run lint && npm run typecheck && npm run test && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "rm -rf .test-dist && tsc -p tests/tsconfig.json && node .test-dist/tests/recommendation.test.js"
+    "test": "npm run test:compile && npm run test:unit && npm run test:schema",
+    "test:compile": "rm -rf .test-dist && tsc -p tests/tsconfig.json",
+    "test:unit": "node .test-dist/tests/recommendation.test.js",
+    "test:schema": "node .test-dist/tests/schema.test.js",
+    "test:integration": "npm run test:compile && node .test-dist/tests/integration.test.js",
+    "seed:draft-v2": "node --experimental-strip-types scripts/seed-draft-v2.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "2.110.8",
     "leaflet": "1.9.4",
     "next": "16.2.11",

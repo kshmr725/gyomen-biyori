@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DEFAULT_SUPABASE_URL = "https://hpkjhohxwaopmyinijos.supabase.co";
 const DEFAULT_SUPABASE_KEY =
@@ -25,7 +26,7 @@ export function isSupabaseConfigured(): boolean {
 
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (!client) {
-    client = createClient(getSupabaseUrl(), getSupabaseKey());
+    client = createBrowserClient(getSupabaseUrl(), getSupabaseKey());
   }
   return client;
 }

@@ -1,0 +1,358 @@
+-- ============================================================================
+-- 魚麵日和 (GYOMEN BIYORI) — Data v2 Schema Migration (v1.1 Corrected)
+-- Version: 20260726144500
+-- Features: Strict UUID Foreign Keys, verification_status, is_24_hours Support
+-- ============================================================================
+
+-- 1. ENUMS
+CREATE TYPE data_quality_enum AS ENUM ('verified', 'unverified');
+CREATE TYPE verification_status_enum AS ENUM ('pending', 'source_checked', 'editor_confirmed', 'field_verified');
+CREATE TYPE broth_category_enum AS ENUM ('tonkotsu', 'tori_pai_tan', 'shoyu', 'shio', 'miso', 'niboshi', 'ebi', 'spicy', 'tsukemen', 'limited');
+CREATE TYPE queue_level_enum AS ENUM ('none', 'under30', 'long');
+CREATE TYPE change_type_enum AS ENUM ('price_change', 'hours_update', 'closure', 'info_fix', 'menu_update');
+
+-- Helper trigger function for automatic updated_at
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 1. admin_profiles (管理者與權限)
+CREATE TABLE admin_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  role TEXT NOT NULL DEFAULT 'editor', -- admin, editor
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2. sources (資料來源主表 - 需包含具體 URL)
+CREATE TABLE sources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL, -- official_web, official_facebook, official_instagram, google_maps, threads, ptt, dcard
+  source_url TEXT NOT NULL,
+  trust_tier TEXT NOT NULL DEFAULT 'medium',
+  notes TEXT,
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3. stores (拉麵品牌主表)
+CREATE TABLE stores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  brand TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  area TEXT NOT NULL,
+  description TEXT,
+  base_price INTEGER NOT NULL DEFAULT 250,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  verified_by TEXT,
+  verification_notes TEXT,
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT store_verified_consistency_check CHECK ((data_quality = 'verified' AND verification_status != 'pending') OR (data_quality = 'unverified'))
+);
+
+-- 4. branches (分店實體 - 包含經緯度與純電話)
+CREATE TABLE branches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  branch_name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  phone TEXT, -- 純電話號碼或 NULL，不允許文字備註
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  verified_by TEXT,
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT branch_verified_consistency_check CHECK ((data_quality = 'verified' AND verification_status != 'pending') OR (data_quality = 'unverified'))
+);
+
+-- 5. opening_hours (營業時間 - 關聯至 branch_id，支援 is_24_hours)
+CREATE TABLE opening_hours (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+  open_time TIME NOT NULL DEFAULT '00:00:00',
+  close_time TIME NOT NULL DEFAULT '23:59:59',
+  is_24_hours BOOLEAN NOT NULL DEFAULT FALSE,
+  is_break BOOLEAN NOT NULL DEFAULT FALSE,
+  break_start_time TIME,
+  break_end_time TIME,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 6. nearby_transit (周邊捷運 - 關聯至 branch_id)
+CREATE TABLE nearby_transit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  station_name TEXT NOT NULL,
+  line_name TEXT,
+  exit_name TEXT,
+  walk_minutes INTEGER NOT NULL,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 7. menus (菜單 - 關聯至 branch_id)
+CREATE TABLE menus (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '分店菜單',
+  version TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 8. dishes (單品餐點 - 必備指向有效 menu_id)
+CREATE TABLE dishes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  menu_id UUID NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  price INTEGER NOT NULL,
+  is_signature BOOLEAN NOT NULL DEFAULT FALSE,
+  spiciness_level INTEGER NOT NULL DEFAULT 0,
+  broth_category broth_category_enum,
+  description TEXT,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 9. photos (照片資源 - 多層級關聯 store / branch / dish，至少需具備一項關聯)
+CREATE TABLE photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
+  branch_id UUID REFERENCES branches(id) ON DELETE CASCADE,
+  dish_id UUID REFERENCES dishes(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  caption TEXT,
+  category TEXT NOT NULL DEFAULT 'dish',
+  source_credit TEXT,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT photos_target_entity_check CHECK (store_id IS NOT NULL OR branch_id IS NOT NULL OR dish_id IS NOT NULL)
+);
+
+-- 10. tags (標籤)
+CREATE TABLE tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL DEFAULT 'broth',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 11. branch_tags (分店標籤關聯)
+CREATE TABLE branch_tags (
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (branch_id, tag_id)
+);
+
+-- 12. payment_methods (支付方式)
+CREATE TABLE payment_methods (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  icon TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 13. branch_payment_methods (分店支付關聯)
+CREATE TABLE branch_payment_methods (
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  payment_method_id UUID NOT NULL REFERENCES payment_methods(id) ON DELETE CASCADE,
+  PRIMARY KEY (branch_id, payment_method_id)
+);
+
+-- 14. queue_records (排隊紀錄 - 關聯至 branch_id)
+CREATE TABLE queue_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  level queue_level_enum NOT NULL DEFAULT 'under30',
+  peak_wait_minutes INTEGER NOT NULL DEFAULT 30,
+  off_peak_wait_minutes INTEGER NOT NULL DEFAULT 10,
+  queue_rules TEXT,
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 15. editorial_entries (草稿與正式編輯短評)
+CREATE TABLE editorial_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  editor_name TEXT NOT NULL DEFAULT '魚麵編輯草稿',
+  editor_note TEXT NOT NULL,
+  recommended_dish TEXT,
+  gyomen_score_overall NUMERIC(3, 1) CHECK (gyomen_score_overall BETWEEN 0.0 AND 5.0),
+  gyomen_score_broth NUMERIC(3, 1),
+  gyomen_score_noodle NUMERIC(3, 1),
+  gyomen_score_chashu NUMERIC(3, 1),
+  gyomen_score_value NUMERIC(3, 1),
+  data_quality data_quality_enum NOT NULL DEFAULT 'unverified',
+  verification_status verification_status_enum NOT NULL DEFAULT 'pending',
+  checked_at TIMESTAMPTZ,
+  source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 16. source_links (資料來源連結明細)
+CREATE TABLE source_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT,
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT source_links_entity_type_check CHECK (entity_type IN ('store', 'branch', 'dish', 'photo', 'opening_hours', 'menu'))
+);
+
+-- 17. update_logs (資料異動日誌)
+CREATE TABLE update_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  changed_by UUID REFERENCES admin_profiles(id) ON DELETE SET NULL,
+  entity_type TEXT NOT NULL,
+  entity_id UUID NOT NULL,
+  change_type change_type_enum NOT NULL,
+  summary TEXT NOT NULL,
+  before_state JSONB,
+  after_state JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+ALTER TABLE admin_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE branches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE opening_hours ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nearby_transit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menus ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dishes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE branch_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE branch_payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE queue_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE editorial_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE source_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE update_logs ENABLE ROW LEVEL SECURITY;
+
+-- Helper function: Is Admin or Editor (content management)
+CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_profiles
+    WHERE id = user_id AND role IN ('admin', 'editor')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function: Is Strict Admin Only (admin_profiles & audit log management)
+CREATE OR REPLACE FUNCTION is_strict_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Public READ Policies: Verified Content Only (Or Admin Can View All)
+CREATE POLICY "Filtered stores select" ON stores FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered branches select" ON branches FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered opening_hours select" ON opening_hours FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered nearby_transit select" ON nearby_transit FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered menus select" ON menus FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered dishes select" ON dishes FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered photos select" ON photos FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Public tags select" ON tags FOR SELECT USING (true);
+CREATE POLICY "Public branch_tags select" ON branch_tags FOR SELECT USING (true);
+CREATE POLICY "Public payment_methods select" ON payment_methods FOR SELECT USING (true);
+CREATE POLICY "Public branch_payment_methods select" ON branch_payment_methods FOR SELECT USING (true);
+CREATE POLICY "Filtered queue_records select" ON queue_records FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Filtered editorial_entries select" ON editorial_entries FOR SELECT USING (data_quality = 'verified' OR is_admin(auth.uid()));
+CREATE POLICY "Public sources select" ON sources FOR SELECT USING (true);
+CREATE POLICY "Public source_links select" ON source_links FOR SELECT USING (true);
+
+-- Admin WRITE Policies (INSERT, UPDATE, DELETE)
+CREATE POLICY "Admin stores write" ON stores FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin branches write" ON branches FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin opening_hours write" ON opening_hours FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin nearby_transit write" ON nearby_transit FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin menus write" ON menus FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin dishes write" ON dishes FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin photos write" ON photos FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin tags write" ON tags FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin branch_tags write" ON branch_tags FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin payment_methods write" ON payment_methods FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin branch_payment_methods write" ON branch_payment_methods FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin queue_records write" ON queue_records FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin editorial_entries write" ON editorial_entries FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin sources write" ON sources FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin source_links write" ON source_links FOR ALL USING (is_admin(auth.uid()));
+CREATE POLICY "Admin update_logs write" ON update_logs FOR ALL USING (is_strict_admin(auth.uid()));
+CREATE POLICY "Admin profiles select" ON admin_profiles FOR SELECT USING (auth.uid() = id OR is_admin(auth.uid()));
+CREATE POLICY "Admin profiles write" ON admin_profiles FOR INSERT WITH CHECK (is_strict_admin(auth.uid()));
+CREATE POLICY "Admin profiles update" ON admin_profiles FOR UPDATE USING (is_strict_admin(auth.uid()));
+CREATE POLICY "Admin profiles delete" ON admin_profiles FOR DELETE USING (is_strict_admin(auth.uid()));
+
+-- Role Privileges Grants for PostgREST & Supabase Roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
