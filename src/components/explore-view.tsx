@@ -15,41 +15,62 @@ type Sort = "walk" | "score" | "queue";
 type MobileTab = "list" | "map";
 
 export function ExploreView() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [center, setCenter] = useState<Coordinates>(TAIPEI_CENTER);
-  const [selectedLocationName, setSelectedLocationName] = useState<string>("台北車站");
+  const [selectedLocationName, setSelectedLocationName] = useState<string>("");
+  const [hasConfirmedLocation, setHasConfirmedLocation] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [sort, setSort] = useState<Sort>("walk");
   const [minutes, setMinutes] = useState<Record<string, number>>({});
-  const [routeStatus, setRouteStatus] = useState("正在計算預計地點步行時間…");
+  const [routeStatus, setRouteStatus] = useState("");
   const [mobileTab, setMobileTab] = useState<MobileTab>("list");
+  const [gpsStatus, setGpsStatus] = useState<string | null>(null);
 
   const selectCenter = useCallback((point: Coordinates) => {
-    setRouteStatus("正在計算地點步行路線…");
+    setRouteStatus(lang === "en" ? "Updating walking routes from the adjusted map point…" : "正在依地圖微調位置更新步行路線…");
     setCenter(point);
-    setSelectedLocationName("地圖點選位置");
+    setSelectedLocationName(lang === "en" ? "Adjusted map point" : "地圖微調位置");
     setSelectedShop(null);
-  }, []);
+  }, [lang]);
 
   const handleUseGPS = useCallback(() => {
-    navigator.geolocation?.getCurrentPosition(({ coords }) => {
-      setRouteStatus("正在計算 GPS 目前定位步行路線…");
-      setCenter({ lat: coords.latitude, lng: coords.longitude });
-      setSelectedLocationName("GPS 目前定位");
-      setSelectedShop(null);
-    });
-  }, []);
+    if (!navigator.geolocation) {
+      setGpsStatus(lang === "en" ? "Location is not supported by this browser." : "此瀏覽器不支援定位，請改用搜尋或地標。");
+      return;
+    }
+
+    setGpsStatus(lang === "en" ? "Locating…" : "正在取得目前位置…");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setCenter({ lat: coords.latitude, lng: coords.longitude });
+        setSelectedLocationName(lang === "en" ? "Current location" : "目前位置");
+        setSelectedShop(null);
+        setHasConfirmedLocation(true);
+        setMobileTab("list");
+        setRouteStatus(lang === "en" ? "Calculating walking routes from your current location…" : "正在依目前位置計算步行路線…");
+        setGpsStatus(null);
+      },
+      () => {
+        setGpsStatus(lang === "en" ? "Location permission was denied. Search a station or landmark instead." : "無法取得定位權限，請改用捷運站、地址或地標搜尋。");
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  }, [lang]);
 
   const handleSelectLocation = useCallback((coords: Coordinates, name: string) => {
-    setRouteStatus(`正在計算以「${name}」為中心的路線…`);
+    setRouteStatus(lang === "en" ? `Calculating walking routes from ${name}…` : `正在計算以「${name}」為中心的步行路線…`);
     setCenter(coords);
     setSelectedLocationName(name);
     setSelectedShop(null);
-  }, []);
+    setHasConfirmedLocation(true);
+    setMobileTab("list");
+    setGpsStatus(null);
+  }, [lang]);
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (!hasConfirmedLocation) return;
 
+    const controller = new AbortController();
     fetch("/api/walking-times", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,7 +84,11 @@ export function ExploreView() {
           payload.durations.map((item: { id: string; minutes: number }) => [item.id, item.minutes])
         );
         setMinutes(nextMinutes);
-        setRouteStatus(payload.source === "cache" ? "使用 24 小時內可信快取" : `使用以「${selectedLocationName}」為中心的路線`);
+        setRouteStatus(
+          payload.source === "cache"
+            ? (lang === "en" ? "Using a trusted route cache from the last 24 hours" : "使用 24 小時內可信路線快取")
+            : (lang === "en" ? `Walking routes from ${selectedLocationName}` : `以「${selectedLocationName}」為中心的步行路線`)
+        );
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -72,7 +97,7 @@ export function ExploreView() {
       });
 
     return () => controller.abort();
-  }, [center.lat, center.lng, selectedLocationName]);
+  }, [center.lat, center.lng, hasConfirmedLocation, lang, selectedLocationName]);
 
   const sorted = useMemo(() => {
     return [...shops].sort((a, b) => {
@@ -84,7 +109,6 @@ export function ExploreView() {
 
   const handleShopSelectFromMap = useCallback((shop: Shop) => {
     setSelectedShop(shop);
-
     const isMobileMap = window.matchMedia("(max-width: 900px)").matches;
     if (isMobileMap) setMobileTab("list");
 
@@ -98,78 +122,90 @@ export function ExploreView() {
       });
     };
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(scrollToCard);
-    });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(scrollToCard));
   }, []);
 
   return (
     <div className="explore-container">
-      <div className="explore-search-bar paper-card">
-        <h3>{t.searchHeading}</h3>
+      <div className={`explore-search-bar paper-card ${hasConfirmedLocation ? "is-compact" : "is-onboarding"}`}>
+        <h3>{hasConfirmedLocation ? (lang === "en" ? "Change starting point" : "更改出發地點") : t.searchHeading}</h3>
         <LocationSearch
           onSelectLocation={handleSelectLocation}
           onUseGPS={handleUseGPS}
           currentSelectedName={selectedLocationName}
         />
+        {gpsStatus && <p className="search-status" aria-live="polite">{gpsStatus}</p>}
       </div>
 
-      <div className="mobile-view-toggle">
-        <button
-          className={`mobile-tab-btn ${mobileTab === "list" ? "active" : ""}`}
-          onClick={() => setMobileTab("list")}
-        >
-          {t.mobileTabList} ({sorted.length})
-        </button>
-        <button
-          className={`mobile-tab-btn ${mobileTab === "map" ? "active" : ""}`}
-          onClick={() => setMobileTab("map")}
-        >
-          {t.mobileTabMap}
-        </button>
-      </div>
-
-      <section className="explore-grid">
-        <div className={`map-wrapper ${mobileTab === "map" ? "show-mobile" : "hide-mobile"}`}>
-          <MapView
-            center={center}
-            selected={center}
-            shops={shops}
-            selectedShopId={selectedShop?.id}
-            onSelect={selectCenter}
-            onShopSelect={handleShopSelectFromMap}
-            height={680}
-          />
-        </div>
-
-        <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
-          <div className="list-toolbar">
-            <div>
-              <strong>{t.shopsCount.replace("{count}", String(shops.length)).replace("{center}", selectedLocationName)}</strong>
-              <div className="microcopy">{routeStatus}</div>
-            </div>
-            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-              <option value="walk">{t.sortWalk}</option>
-              <option value="score">{t.sortScore}</option>
-              <option value="queue">{t.sortQueue}</option>
-            </select>
+      {!hasConfirmedLocation ? (
+        <section className="map-onboarding-placeholder" aria-label={lang === "en" ? "Choose a starting point first" : "請先選擇出發地點"}>
+          <div className="map-onboarding-illustration" aria-hidden="true">
+            <span>🚇</span><span>📍</span><span>🍜</span>
           </div>
-          {selectedShop && (
-            <div className="selected-banner">
-              {t.mapSelectedBanner} <strong>{selectedShop.name}</strong>
+          <div>
+            <p className="eyebrow">STEP 02</p>
+            <h2>{lang === "en" ? "The ramen map appears after location confirmation" : "確認地點後，再顯示附近拉麵地圖"}</h2>
+            <p>{lang === "en" ? "This keeps the map meaningful, reduces initial loading and gives every route a clear reference point." : "這樣地圖會有明確的參照中心，也能避免一進頁面就載入大量圖磚與路線資料。"}</p>
+          </div>
+        </section>
+      ) : (
+        <>
+          <div className="confirmed-location-bar">
+            <div>
+              <span>{lang === "en" ? "Starting point" : "目前出發點"}</span>
+              <strong>📍 {selectedLocationName}</strong>
             </div>
-          )}
-          {sorted.map((shop) => (
-            <div key={shop.id} id={`shop-card-${shop.id}`} className="shop-card-slot">
-              <ShopCard
-                shop={shop}
-                walkingMinutes={minutes[shop.id] ?? 0}
-                isSelected={selectedShop?.id === shop.id}
+            <small>{lang === "en" ? "You may fine-tune the point directly on the map." : "可在地圖上點擊微調實際位置。"}</small>
+          </div>
+
+          <div className="mobile-view-toggle">
+            <button className={`mobile-tab-btn ${mobileTab === "list" ? "active" : ""}`} onClick={() => setMobileTab("list")}>
+              {t.mobileTabList} ({sorted.length})
+            </button>
+            <button className={`mobile-tab-btn ${mobileTab === "map" ? "active" : ""}`} onClick={() => setMobileTab("map")}>
+              {t.mobileTabMap}
+            </button>
+          </div>
+
+          <section className="explore-grid">
+            <div className={`map-wrapper ${mobileTab === "map" ? "show-mobile" : "hide-mobile"}`}>
+              <MapView
+                center={center}
+                selected={center}
+                shops={shops}
+                selectedShopId={selectedShop?.id}
+                onSelect={selectCenter}
+                onShopSelect={handleShopSelectFromMap}
+                height={680}
               />
             </div>
-          ))}
-        </div>
-      </section>
+
+            <div className={`shop-list ${mobileTab === "list" ? "show-mobile" : "hide-mobile"}`}>
+              <div className="list-toolbar">
+                <div>
+                  <strong>{t.shopsCount.replace("{count}", String(shops.length)).replace("{center}", selectedLocationName)}</strong>
+                  <div className="microcopy">{routeStatus}</div>
+                </div>
+                <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+                  <option value="walk">{t.sortWalk}</option>
+                  <option value="score">{t.sortScore}</option>
+                  <option value="queue">{t.sortQueue}</option>
+                </select>
+              </div>
+              {selectedShop && (
+                <div className="selected-banner">
+                  {t.mapSelectedBanner} <strong>{selectedShop.name}</strong>
+                </div>
+              )}
+              {sorted.map((shop) => (
+                <div key={shop.id} id={`shop-card-${shop.id}`} className="shop-card-slot">
+                  <ShopCard shop={shop} walkingMinutes={minutes[shop.id] ?? 0} isSelected={selectedShop?.id === shop.id} />
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
